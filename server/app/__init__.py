@@ -1,11 +1,12 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_jwt_extended import JWTManager
 from config import Config
-
 
 db = SQLAlchemy()
 migrate = Migrate()
+jwt = JWTManager()
 
 def create_app():
     """
@@ -17,6 +18,7 @@ def create_app():
     # Khởi tạo SQLAlchemy và Migrate với app
     db.init_app(app)
     migrate.init_app(app, db)
+    jwt.init_app(app)
 
     # Import và đăng ký Blueprint API
     # Chúng ta import api_bp từ app.api để đăng ký nó với ứng dụng Flask
@@ -26,8 +28,7 @@ def create_app():
     # Quan trọng: Import routes ở đây để đảm bảo các lớp Resource
     # được định nghĩa và đăng ký với Flask-RESTX Api instance.
     # Nếu không import, Flask-RESTX sẽ không "thấy" các Resource này.
-    # from . import routes
-    from app.api import user_api
+    from app.api import user_api, auth_api
 
     # Import models để SQLAlchemy biết các model của bạn
     from app import models

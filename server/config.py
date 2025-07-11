@@ -1,10 +1,19 @@
 import os
 from dotenv import load_dotenv
+import cloudinary
 
 # Tải các biến môi trường từ file .env
 load_dotenv()
 
 class Config:
     # Cấu hình cơ sở dữ liệu MySQL
-    SQLALCHEMY_DATABASE_URI = f"mysql+pymysql://root:{os.getenv('mysql_password')}@localhost:3306/thuvien?charset=utf8mb4"
-    SQLALCHEMY_TRACK_MODIFICATIONS = False # Tắt tính năng theo dõi thay đổi của SQLAlchemy (tiết kiệm tài nguyên)
+    SQLALCHEMY_DATABASE_URI = f"mysql+pymysql://root:{os.getenv('MYSQL_PASSWORD')}@localhost:3306/thuvien?charset=utf8mb4"
+    SQLALCHEMY_TRACK_MODIFICATIONS = True
+    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
+
+    cloudinary.config(
+        cloud_name=os.getenv("CLOUD_NAME"),
+        api_key=os.getenv("API_KEY"),
+        api_secret=os.getenv("API_SECRET"),
+        secure=True
+    )
