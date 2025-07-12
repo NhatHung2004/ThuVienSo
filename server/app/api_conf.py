@@ -1,6 +1,7 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint
 from flask_restx import Api, fields, reqparse
 from flask_jwt_extended.exceptions import NoAuthorizationError
+from werkzeug.datastructures import FileStorage
 
 # Tạo một Blueprint cho API. Blueprint này sẽ được đăng ký với ứng dụng Flask chính.
 # url_prefix='/api' có nghĩa là tất cả các endpoint trong Blueprint này sẽ có tiền tố /api.
@@ -20,6 +21,8 @@ api = Api(
 # Điều này làm cho tài liệu Swagger UI có cấu trúc rõ ràng hơn.
 user_ns = api.namespace('users', description='Các thao tác liên quan đến người dùng')
 auth_ns = api.namespace('auth', description='Các thao tác liên quan đến chứng thực người dùng')
+category_ns = api.namespace('categories', description='Các thao tác liên quan đến thể loại sách')
+book_ns = api.namespace('books', description='Các thao tác liên quan đến sách')
 
 @api.errorhandler(NoAuthorizationError)
 def handle_no_authorization_error(error):
@@ -41,19 +44,60 @@ message_model = api.model('Message', {
     "message": fields.String(readOnly=True, description='Thông báo trả về')
 })
 
+category_model = api.model('Category', {
+    'id': fields.Integer(readOnly=True, description='ID duy nhất của thể loại'),
+    'name': fields.String(required=True, description='Tên thể loại'),
+})
+
+book_model = api.model('Book', {
+    'id': fields.Integer(readOnly=True, description='ID duy nhất của sách'),
+    'title': fields.String(required=True, description='Tên sách'),
+    'description': fields.String(required=True, description='Mô tả sách'),
+    'image': fields.String(required=True, description='Ảnh sách'),
+    'quantity': fields.Integer(required=True, description='Số lượng sách'),
+    'author_id': fields.Integer(required=True, description='Tác giả'),
+    'category_id': fields.Integer(required=True, description='Thể loại'),
+})
+
 # --- Định nghĩa Parsers cho Swagger UI ---
 # Parsers được sử dụng để định nghĩa các tham số đầu vào (query params, form data)
 # và giúp Swagger UI hiển thị các trường nhập liệu tương ứng.
 
+''' USER '''
 user_creation_parser = reqparse.RequestParser()
-user_creation_parser.add_argument('username', type=str, required=True, help='Tên người dùng là bắt buộc')
-user_creation_parser.add_argument('email', type=str, required=True, help='Email người dùng là bắt buộc')
-user_creation_parser.add_argument('password', type=str, required=True, help='Password người dùng là bắt buộc')
-user_creation_parser.add_argument('firstname', type=str, required=False, help='Tên (không bắt buộc)')
-user_creation_parser.add_argument('lastname', type=str, required=False, help='Họ (không bắt buộc)')
-user_creation_parser.add_argument('role', type=str, required=False, help='Quyền (không bắt buộc)')
+user_creation_parser.add_argument('username', type=str, required=True, help='Tên người dùng là bắt buộc', location='form')
+user_creation_parser.add_argument('email', type=str, required=True, help='Email người dùng là bắt buộc', location='form')
+user_creation_parser.add_argument('password', type=str, required=True, help='Password người dùng là bắt buộc', location='form')
+user_creation_parser.add_argument('firstname', type=str, required=False, help='Tên (không bắt buộc)', location='form')
+user_creation_parser.add_argument('lastname', type=str, required=False, help='Họ (không bắt buộc)', location='form')
+user_creation_parser.add_argument('role', type=str, required=False, help='Quyền (không bắt buộc)', location='form')
+user_creation_parser.add_argument('avatar', type=FileStorage, required=False, help='Ảnh (không bắt buộc)', location='files')
 
+''' AUTH '''
 auth_parser = reqparse.RequestParser()
 auth_parser.add_argument('username', type=str, required=True, help='Tên người dùng')
 auth_parser.add_argument('password', type=str, required=True, help='Mật khẩu')
+
+''' CATEGORY '''
+category_parser = reqparse.RequestParser()
+category_parser.add_argument('name', type=str, required=True, help="Tên thể loại")
+
+''' BOOK '''
+book_parser = reqparse.RequestParser()
+book_parser.add_argument('title', type=str, required=True, help='Tên sách', location='form')
+book_parser.add_argument('description', type=str, required=True, help='Mô tả sách', location='form')
+book_parser.add_argument('image', type=FileStorage, required=False, help='Ảnh sách', location='files')
+book_parser.add_argument('quantity', type=int, required=True, help='Số lượng', location='form')
+book_parser.add_argument('author', type=str, required=True, help='Tác giả', location='form')
+book_parser.add_argument('category', type=str, required=True, help='Loại sách', location='form')
+
+''' UPDATED BOOK '''
+book_update_parser = reqparse.RequestParser()
+book_update_parser.add_argument('title', type=str, help='Tên sách', location='form')
+book_update_parser.add_argument('description', type=str, help='Mô tả sách', location='form')
+book_update_parser.add_argument('image', type=FileStorage, help='Ảnh sách', location='files')
+book_update_parser.add_argument('quantity', type=int, help='Số lượng', location='form')
+book_update_parser.add_argument('author', type=str, help='Tác giả', location='form')
+book_update_parser.add_argument('category', type=str, help='Loại sách', location='form')
+
 

@@ -1,15 +1,14 @@
-
 from app import db
-from app.models import User, UserRole
+from app.models import User
 import bcrypt
 
 def create_user(username, email, password, role=None, avatar=None, firstname=None, lastname=None):
     password = str(bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8'))
 
     if role is None:
-        user = User(username=username, email=email, password=password, firstname=firstname, lastname=lastname)
+        user = User(username=username, email=email, password=password, firstname=firstname, lastname=lastname, avatar=avatar)
     else:
-        user = User(username=username, email=email, password=password, firstname=firstname, lastname=lastname, role=role)
+        user = User(username=username, email=email, password=password, firstname=firstname, lastname=lastname, role=role, avatar=avatar)
 
     db.session.add(user)
     db.session.commit()
