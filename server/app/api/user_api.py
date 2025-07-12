@@ -2,6 +2,7 @@ from app.dao import dao_user
 from flask_restx import Resource
 from app.api_conf import user_ns, user_model, user_creation_parser, message_model
 from flask_jwt_extended import jwt_required
+from cloudinary import uploader
 
 '''Định nghĩa Resource cho danh sách người dùng (GET, POST)'''
 @user_ns.route('/')
@@ -17,16 +18,21 @@ class UserList(Resource):
     @user_ns.expect(user_creation_parser)  # Định nghĩa định dạng request body cho Swagger UI
     @user_ns.marshal_with(user_model, code=201)  # Định nghĩa định dạng response và mã trạng thái khi tạo thành công
     def post(self):
-        '''Tạo một người dùng mới'''
+        '''Tạo một người dùng mới, dùng khi đăng ký tài khoản'''
         # Lấy dữ liệu từ request body thông qua parser đã định nghĩa
         args = user_creation_parser.parse_args()
+        avatar = args['avatar']
+
+        if avatar:
+            res = uploader.upload(avatar)
+            avatar = res["secure_url"]
 
         new_user = dao_user.create_user(
             args['username'],
             args['email'],
             args['password'],
             args['role'],
-            None,
+            avatar,
             args['firstname'], args['lastname']
         )
 
