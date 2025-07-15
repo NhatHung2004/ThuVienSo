@@ -1,0 +1,23 @@
+/* Chrome, Safari và Opera */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Firefox */
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none; /* IE 10+ */
+}
+
+/* Áp dụng cho overflow-x */
+.hide-scrollbar {
+  overflow-x: auto;
+}
+
+.scroll-hidden {
+  -ms-overflow-style: none; /* IE và Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.scroll-hidden::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
