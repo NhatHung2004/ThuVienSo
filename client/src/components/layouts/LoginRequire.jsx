@@ -8,9 +8,9 @@ const LoginRequire = () => {
         <div className="md:w-1/2">
           <h2
             style={{ color: "#214E99" }}
-            className="text-4xl md:text-5xl font-bold text-center md:text-left"
+            className="text-4xl md:text-4xl font-bold text-center md:text-left"
           >
-            Khám Phá Thư Viện.
+            Khám Phá Thư Viện
           </h2>
           <p className="text-xl text-center md:text-left mt-4 font-normal text-[#214E99]">
             Đăng ký tài khoản miễn phí để có thể mượn và sử dụng hết chức năng

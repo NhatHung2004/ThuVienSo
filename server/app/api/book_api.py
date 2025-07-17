@@ -4,12 +4,14 @@ from flask_jwt_extended import jwt_required
 from app.dao import dao_book
 from flask import request
 from cloudinary import uploader
+from flask_cors import CORS
+
 
 @book_ns.route('/')
 class BookList(Resource):
     @book_ns.doc('get_book_list')
     @book_ns.marshal_list_with(book_model)
-    @jwt_required()
+    # @jwt_required()
     def get(self):
         '''Lấy danh sách tất cả sách'''
         kw = request.args.get('kw')
@@ -24,7 +26,7 @@ class BookList(Resource):
     @book_ns.expect(book_parser)
     @book_ns.marshal_with(book_model)
     @book_ns.expect(book_parser)
-    @jwt_required()
+    # @jwt_required()
     def post(self):
         ''' Thêm sách mới '''
         args = book_parser.parse_args()
@@ -46,7 +48,7 @@ class BookList(Resource):
 class Book(Resource):
     @book_ns.doc('get_book')
     @book_ns.marshal_with(book_model)
-    @jwt_required()
+    # @jwt_required()
     def get(self, book_id):
         ''' Lấy sách theo ID '''
         book = dao_book.get_book_by_id(book_id)
@@ -58,7 +60,7 @@ class Book(Resource):
 
     @book_ns.doc('delete_book')
     @book_ns.marshal_with(message_model)
-    @jwt_required()
+    # @jwt_required()
     def delete(self, book_id):
         ''' Xoá sách theo ID '''
         deleted = dao_book.delete_book_by_id(book_id)
@@ -71,7 +73,7 @@ class Book(Resource):
     @book_ns.doc('update_book')
     @book_ns.expect(book_update_parser)
     @book_ns.marshal_with(book_model)
-    @jwt_required()
+    # @jwt_required()
     def patch(self, book_id):
         ''' Cập nhật thông tin sách '''
         args = book_update_parser.parse_args()

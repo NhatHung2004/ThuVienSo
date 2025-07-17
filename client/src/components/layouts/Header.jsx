@@ -35,7 +35,7 @@ const callsToAction = [
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("/books");
+  const [activeTab, setActiveTab] = useState("");
 
   return (
     <header className="bg-white">
