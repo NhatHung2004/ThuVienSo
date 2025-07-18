@@ -27,7 +27,7 @@ const Login = () => {
       let res = await Apis.post("/auth/login", data);
       console.log(res.data.access_token);
       cookie.save("token", res.data.access_token);
-      let user = await authApis().get("");
+      let user = await authApis().get(`/users/${username}`);
       console.log(user.data);
       dispatch({ type: "login", payload: user.data });
       navigate("/");
