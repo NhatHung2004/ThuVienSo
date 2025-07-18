@@ -62,6 +62,7 @@ book_model = api.model('Book', {
 
 comment_model = api.model('Comment', {
     'content': fields.String(required=True, description='Nội dung bình luận'),
+    'rating': fields.Integer(required=True, description='Đánh giá'),
     'book_id': fields.Integer(required=True, description='Mã sách'),
     'user_id': fields.Integer(required=True, description='Người bình luận'),
     'created_date': fields.DateTime(required=True, description='Ngày bình luận')
