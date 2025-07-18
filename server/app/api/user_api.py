@@ -9,7 +9,7 @@ from cloudinary import uploader
 class UserList(Resource):
     @user_ns.doc('list_users')  # Mô tả operation cho Swagger UI
     @user_ns.marshal_list_with(user_model)  # Định nghĩa định dạng response khi trả về danh sách user
-    # @jwt_required()
+    @jwt_required()
     def get(self):
         '''Lấy danh sách tất cả người dùng'''
         return dao_user.get_users_list()
