@@ -82,7 +82,7 @@ class Book(Resource):
 
 @book_ns.route('/<int:book_id>/comments')
 class CommentList(Resource):
-    @book_ns.doc('get_comments')
+    @book_ns.doc('post_comments')
     @book_ns.marshal_with(comment_model)
     @book_ns.expect(comment_parser)
     def post(self, book_id):
@@ -90,6 +90,16 @@ class CommentList(Resource):
         c = dao_book.add_comment(args['content'], book_id, args['user_id'], args['rating'])
         dao_book.update_book_rating(book_id)
         return c, 200 if c else 500
+
+    @book_ns.doc('get_comments')
+    @book_ns.marshal_with(comment_model)
+    def get(self, book_id):
+        c = dao_book.get_comment(book_id)
+
+        if c:
+            return c, 200
+
+        return {}, 404
 
 book_ns.add_resource(BookList, '/')
 book_ns.add_resource(Book, '/<int:book_id>')
