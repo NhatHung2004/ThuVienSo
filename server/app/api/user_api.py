@@ -1,6 +1,8 @@
+from flask import request
+
 from app.dao import dao_user
 from flask_restx import Resource
-from app.api_conf import user_ns, user_model, user_creation_parser, message_model
+from app.api_conf import user_ns, user_model, user_creation_parser, message_model, user_parser
 from flask_jwt_extended import jwt_required
 from cloudinary import uploader
 
@@ -9,10 +11,12 @@ from cloudinary import uploader
 class UserList(Resource):
     @user_ns.doc('list_users')  # Mô tả operation cho Swagger UI
     @user_ns.marshal_list_with(user_model)  # Định nghĩa định dạng response khi trả về danh sách user
+    @user_ns.expect(user_parser)
     @jwt_required()
     def get(self):
-        '''Lấy danh sách tất cả người dùng'''
-        return dao_user.get_users_list()
+        '''Lấy danh sách tất cả người dùng, lấy theo username (query param)'''
+        un = request.args.get('un')
+        return dao_user.get_users_list(un=un)
 
     @user_ns.doc('create_user')
     @user_ns.expect(user_creation_parser)  # Định nghĩa định dạng request body cho Swagger UI
