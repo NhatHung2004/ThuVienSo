@@ -77,7 +77,9 @@ class User(Resource):
             return '', 204
 
         return {"message": "Lỗi khi thực hiện xáo người dùng"}, 500
+        
 
 
 user_ns.add_resource(UserList, '/')
 user_ns.add_resource(User, '/<int:user_id>')
+

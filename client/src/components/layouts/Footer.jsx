@@ -2,17 +2,22 @@ import React from "react";
 
 const Footer = () => {
   return (
-    <footer className="bg-gray-900 text-gray-300 py-8 px-4">
-      <div className="max-w-6xl mx-auto">
+    <footer className="bg-white text-gray-300 px-4">
+      <img
+        src="https://ou.edu.vn/wp-content/uploads/2018/08/LOGO-TRUONGV21-12-2018-01-300x300.png"
+        alt="logo"
+        class="w-35 flex justify-start md:ml-18"
+      />
+      <div className="max-w-10xl md:ml-20 ">
         {/* Address section */}
-        <div className="mb-6">
-          <h3 className="text-xl font-bold text-white mb-2">Dia chi</h3>
+        <div className="mt-0">
+          <h3 className="text-xl font-bold text-[#214E99] mb-2">Địa chỉ</h3>
           <p className="text-gray-400">Huyện Nhà Bè, Thành phố Hồ Chí Minh</p>
         </div>
 
         {/* Contact section */}
-        <div className="mb-6">
-          <h3 className="text-xl font-bold text-white mb-2">Liên hệ</h3>
+        <div className="mb-6 mt-5">
+          <h3 className="text-xl font-bold text-[#214E99] mb-2">Liên hệ</h3>
           <div className="flex flex-col md:flex-row md:space-x-6">
             <div className="flex items-center mb-2 md:mb-0">
               <svg
@@ -41,38 +46,33 @@ const Footer = () => {
         </div>
 
         {/* Divider */}
-        <hr className="border-gray-700 my-6" />
-
-        {/* Copyright */}
-        <div className="text-center mb-6">
-          <p>© 2025 Thư viện số. Tất cả đã được bảo lưu</p>
-        </div>
-
-        {/* Divider */}
-        <hr className="border-gray-700 my-6" />
+        <hr className="border-gray-700 my-6  md:mr-16" />
 
         {/* Social media */}
-        <div className="mb-6">
-          <h3 className="text-xl font-bold text-white mb-4 text-center">
-            Social
-          </h3>
-          <div className="flex justify-center space-x-6">
-            {["Facebook", "Instagram", "LinkedIn", "Thread", "Youtube"].map(
-              (platform) => (
-                <a
-                  key={platform}
-                  href="#"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  {platform}
-                </a>
-              )
-            )}
+        <div className="flex flex-col md:flex-row items-center justify-between  mb-6 text-sm text-gray-400 space-y-4 md:space-y-0">
+          {/* Copyright */}
+          <div className="text-center mb-6">
+            <p>© 2025 Thư viện số. Tất cả đã được bảo lưu</p>
+          </div>
+          <div className="flex flex-rol">
+            <h3 className="text-xl font-bold md:mr-10 mr-10 text-[#214E99] mb-4 flex justify-end text-right">
+              Social
+            </h3>
+            <div className="flex mt-1 space-x-6 md:mr-16">
+              {["Facebook", "Instagram", "LinkedIn", "Thread", "Youtube"].map(
+                (platform) => (
+                  <a
+                    key={platform}
+                    href="#"
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    {platform}
+                  </a>
+                )
+              )}
+            </div>
           </div>
         </div>
-
-        {/* Code number */}
-        <div className="text-center text-gray-500 text-sm mt-8">1920 - 562</div>
       </div>
     </footer>
   );

@@ -2,8 +2,10 @@ import React from "react";
 import "../layouts/Home.css";
 import Book from "../components/layouts/Book";
 import LoginRequire from "../components/layouts/LoginRequire";
+import { useNavigate, Link } from "react-router-dom";
 
 const Home = () => {
+  const navigate = useNavigate();
   return (
     <div className="w-full min-h-screen bg-white">
       <div className="relative w-full p-6">
@@ -35,17 +37,17 @@ const Home = () => {
           <div className="md:w-1/2 px-4 md:px-0 mx-auto md:mx-0">
             <h2
               style={{ color: "#214E99" }}
-              className="text-4xl md:text-5xl font-bold text-center md:text-left md:ml-40"
+              className="text-4xl md:text-4xl md:mt-10 font-bold text-center md:text-left md:ml-40"
             >
               Khám Phá Thế Giới Sách
             </h2>
             <h2
               style={{ color: "#214E99" }}
-              className="text-4xl md:text-5xl font-bold text-center md:text-left md:ml-40"
+              className="text-4xl md:text-4xl font-bold text-center md:text-left md:ml-40"
             >
               Phong Phú
             </h2>
-            <p className="text-xl text-gray-400 text-center md:text-left mt-10 font-semibold md:ml-40">
+            <p className="text-5sm text-gray-400 text-center md:text-left mt-10 font-semibold md:ml-40">
               Chúng tôi cung cấp hàng ngàn đầu sách và tài liệu học tập. Truy
               cập và mượn dễ dàng và nhanh chóng để nâng cao kiến thức của bạn.
             </p>
@@ -95,31 +97,36 @@ const Home = () => {
 
           {/* Ảnh */}
           <div className="md:w-1/2 w-full mt-10 md:mt-0 flex justify-center md:justify-end relative">
-            <div className="hidden md:mr-20  md:block absolute top-0 right-0 w-[400px]">
+            <div className="hidden md:mr-20 md:block w-[600px] aspect-[3/2]">
               <img
                 src="https://images.pexels.com/photos/1046125/pexels-photo-1046125.jpeg"
                 alt="Khám phá sách"
-                className="w-full h-auto object-cover rounded-lg shadow-lg"
+                className="w-full h-full object-cover rounded-lg shadow-lg"
               />
             </div>
-            <div className="md:hidden w-full max-w-md">
+            <div className="md:hidden w-full max-w-md aspect-[3/2]">
               <img
                 src="https://images.pexels.com/photos/1046125/pexels-photo-1046125.jpeg"
                 alt="Khám phá sách"
-                className="w-full h-auto object-cover rounded-lg"
+                className="w-full h-full object-cover rounded-lg"
               />
             </div>
           </div>
         </div>
         <div className="flex flex-row mt-10 md:mt-18 md:mb-20 mb-10 gap-10 justify-center md:justify-start md:ml-37">
-          <button className="bg-white text-[#214E99] border border-[#214E99] font-semibold px-6 py-3 rounded-lg shadow-md cursor-pointer transition duration-300 transform hover:-translate-y-1">
+          <button
+            onClick={() => navigate("/books")}
+            className="bg-white text-[#214E99] border border-[#214E99] font-semibold px-6 py-3 rounded-lg shadow-md cursor-pointer transition duration-300 transform hover:-translate-y-1"
+          >
             Khám phá ngay
           </button>
 
           <button className="bg-white font-semibold px-6 py-3 rounded-lg duration-300 transform hover:-translate-y-1 cursor-pointer flex items-center gap-2">
-            <span className="bg-gradient-to-r from-[#214E99] to-[#0B1A33] bg-clip-text text-transparent">
-              Đăng nhập
-            </span>
+            <Link to="/login">
+              <span className="bg-gradient-to-r from-[#214E99] to-[#0B1A33] bg-clip-text text-transparent font-semibold hover:underline hover:opacity-80 transition">
+                Đăng nhập
+              </span>
+            </Link>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               h
