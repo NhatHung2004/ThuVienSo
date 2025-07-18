@@ -1,8 +1,13 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import Book2 from "../components/layouts/Book2";
+import { useLocation } from "react-router-dom";
 
 const BookDetail = () => {
+  const location = useLocation();
+  const book = location.state; // đề phòng null
+  if (!book) return <p>Không có dữ liệu sách 😢</p>;
+
   return (
     <div className="w-full min-h-screen bg-white">
       {/* Header quay lại */}
@@ -36,7 +41,11 @@ const BookDetail = () => {
             <div className="flex flex-col md:flex-row gap-6">
               {/* Ảnh sách */}
               <div className="flex justify-center md:justify-start">
-                <div className="w-32 h-44 bg-gray-200 rounded-md border border-gray-300" />
+                <img
+                  src={book.image}
+                  alt="Oranges Are Not the Only Fruit"
+                  className="w-32 h-44 bg-gray-200 rounded-md border border-gray-300"
+                />
               </div>
 
               {/* Thông tin chi tiết */}
@@ -44,7 +53,7 @@ const BookDetail = () => {
                 <div className="flex justify-between items-start">
                   <div>
                     <h1 className="text-2xl font-bold text-gray-800">
-                      Truyện Kiều
+                      {book.title}
                     </h1>
                     <p className="text-gray-600 mt-1">Đối Nguyên Du</p>
                     <div className="flex items-center mt-2">
@@ -63,7 +72,7 @@ const BookDetail = () => {
                         ))}
                       </div>
                       <span className="ml-2 text-gray-700 font-medium">
-                        4.6
+                        {book.average_rating}
                       </span>
                     </div>
                   </div>
@@ -96,10 +105,7 @@ const BookDetail = () => {
                 <div className="mt-6">
                   <h3 className="text-lg font-semibold mb-2">Mô tả</h3>
                   <p className="text-sm text-gray-700 leading-relaxed">
-                    Truyện Kiều (tên đầy đủ là Đoạn trường tân thanh) là một
-                    truyện thơ của đại thi hào Nguyễn Du. Tác phẩm kể về cuộc
-                    đời của Thúy Kiều, một cô gái tài sắc vẹn toàn nhưng phải
-                    trải qua nhiều thăng trầm, đau khổ trong cuộc sống.
+                    {book.description}
                   </p>
                 </div>
 

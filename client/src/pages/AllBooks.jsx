@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Book2 from "../components/layouts/Book2";
 import LoginRequire from "../components/layouts/LoginRequire";
-import Apis from "../configs/Apis";
+import { Apis } from "../configs/Apis";
 
 const AllBooks = () => {
   const [books, setBooks] = useState([]);
