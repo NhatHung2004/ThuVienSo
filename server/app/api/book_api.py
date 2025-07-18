@@ -1,4 +1,4 @@
-from app.api_conf import book_ns, book_parser, book_model, message_model, book_update_parser
+from app.api_conf import book_ns, book_parser, book_model, message_model, book_update_parser, comment_parser, comment_model
 from flask_restx import Resource
 from flask_jwt_extended import jwt_required
 from app.dao import dao_book
@@ -9,22 +9,22 @@ from cloudinary import uploader
 class BookList(Resource):
     @book_ns.doc('get_book_list')
     @book_ns.marshal_list_with(book_model)
-    @jwt_required()
+    # @jwt_required()
     def get(self):
         '''Lấy danh sách tất cả sách'''
         kw = request.args.get('kw')
         category_id = request.args.get('category_id')
         books = dao_book.get_books_list(kw, category_id)
 
-        if books:
-            return books, 200
+        if books is None:
+            return '', 404
 
-        return 404
+        return books, 200
 
     @book_ns.expect(book_parser)
     @book_ns.marshal_with(book_model)
     @book_ns.expect(book_parser)
-    @jwt_required()
+    # @jwt_required()
     def post(self):
         ''' Thêm sách mới '''
         args = book_parser.parse_args()
@@ -46,7 +46,7 @@ class BookList(Resource):
 class Book(Resource):
     @book_ns.doc('get_book')
     @book_ns.marshal_with(book_model)
-    @jwt_required()
+    # @jwt_required()
     def get(self, book_id):
         ''' Lấy sách theo ID '''
         book = dao_book.get_book_by_id(book_id)
@@ -71,7 +71,7 @@ class Book(Resource):
     @book_ns.doc('update_book')
     @book_ns.expect(book_update_parser)
     @book_ns.marshal_with(book_model)
-    @jwt_required()
+    # @jwt_required()
     def patch(self, book_id):
         ''' Cập nhật thông tin sách '''
         args = book_update_parser.parse_args()
@@ -80,5 +80,17 @@ class Book(Resource):
 
         return book, 200 if book else 500
 
+@book_ns.route('/<int:book_id>/comments')
+class CommentList(Resource):
+    @book_ns.doc('get_comments')
+    @book_ns.marshal_with(comment_model)
+    @book_ns.expect(comment_parser)
+    def post(self, book_id):
+        args = comment_parser.parse_args()
+        c = dao_book.add_comment(args['content'], book_id, args['user_id'], args['rating'])
+        dao_book.update_book_rating(book_id)
+        return c, 200 if c else 500
+
 book_ns.add_resource(BookList, '/')
 book_ns.add_resource(Book, '/<int:book_id>')
+book_ns.add_resource(CommentList, '/<int:book_id>/comments')

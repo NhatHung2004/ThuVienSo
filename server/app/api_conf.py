@@ -57,6 +57,14 @@ book_model = api.model('Book', {
     'quantity': fields.Integer(required=True, description='Số lượng sách'),
     'author_id': fields.Integer(required=True, description='Tác giả'),
     'category_id': fields.Integer(required=True, description='Thể loại'),
+    'average_rating': fields.Float(readOnly=True, description='Điểm đánh giá trung bình (1 đến 5)')
+})
+
+comment_model = api.model('Comment', {
+    'content': fields.String(required=True, description='Nội dung bình luận'),
+    'book_id': fields.Integer(required=True, description='Mã sách'),
+    'user_id': fields.Integer(required=True, description='Người bình luận'),
+    'created_date': fields.DateTime(required=True, description='Ngày bình luận')
 })
 
 # --- Định nghĩa Parsers cho Swagger UI ---
@@ -72,6 +80,10 @@ user_creation_parser.add_argument('firstname', type=str, required=False, help='T
 user_creation_parser.add_argument('lastname', type=str, required=False, help='Họ (không bắt buộc)', location='form')
 user_creation_parser.add_argument('role', type=str, required=False, help='Quyền (không bắt buộc)', location='form')
 user_creation_parser.add_argument('avatar', type=FileStorage, required=False, help='Ảnh (không bắt buộc)', location='files')
+
+''' GET USER '''
+user_parser = reqparse.RequestParser()
+user_parser.add_argument('un', type=str, location='args', help='Tìm kiếm theo username')
 
 ''' AUTH '''
 auth_parser = reqparse.RequestParser()
@@ -100,4 +112,8 @@ book_update_parser.add_argument('quantity', type=int, help='Số lượng', loca
 book_update_parser.add_argument('author', type=str, help='Tác giả', location='form')
 book_update_parser.add_argument('category', type=str, help='Loại sách', location='form')
 
-
+''' Comment '''
+comment_parser = reqparse.RequestParser()
+comment_parser.add_argument('content', type=str, help='Bình luận')
+comment_parser.add_argument('user_id', type=int, help='Người bình luận')
+comment_parser.add_argument('rating', type=int, help='Đánh giá sao')
