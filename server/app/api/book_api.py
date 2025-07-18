@@ -4,6 +4,8 @@ from flask_jwt_extended import jwt_required
 from app.dao import dao_book
 from flask import request
 from cloudinary import uploader
+from flask_cors import CORS
+
 
 @book_ns.route('/')
 class BookList(Resource):
@@ -58,7 +60,7 @@ class Book(Resource):
 
     @book_ns.doc('delete_book')
     @book_ns.marshal_with(message_model)
-    @jwt_required()
+    # @jwt_required()
     def delete(self, book_id):
         ''' Xoá sách theo ID '''
         deleted = dao_book.delete_book_by_id(book_id)
