@@ -15,8 +15,13 @@ def create_user(username, email, password, role=None, avatar=None, firstname=Non
 
     return user
 
-def get_users_list():
-    return db.session.query(User).all()
+def get_users_list(un=None):
+    users = User.query
+
+    if un:
+        users = users.filter(User.username.icontains(un))
+
+    return users.all()
 
 def get_user_by_id(user_id):
     user = db.session.query(User).get(user_id)

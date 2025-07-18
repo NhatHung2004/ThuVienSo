@@ -1,5 +1,6 @@
-from app.models import Book, Category, Author
+from app.models import Book, Category, Author, Comment
 from app import db
+from sqlalchemy import func
 
 def get_book_by_id(book_id):
     return Book.query.get(book_id)
@@ -22,7 +23,9 @@ def get_books_list(kw=None, category_id=None):
     if category_id:
         books = books.filter(Book.category_id.__eq__(category_id))
 
-    return books.all()
+    query = books.all()
+
+    return query if query else None
 
 def add_book(title, description, image, quantity, author, category):
     au = Author.query.filter(Author.name.__eq__(author)).first()
@@ -50,31 +53,18 @@ def update_book(book_id, data_to_update):
     db.session.commit()
     return book
 
-# def update_book(book_id, title=None, description=None, image=None, quantity=None, author=None, category=None):
-#     book = Book.query.get(book_id)
-#
-#     if book is None:
-#         return False
-#
-#     if title:
-#         book.title = title
-#
-#     if description:
-#         book.description = description
-#
-#     if image:
-#         book.image = image
-#
-#     if quantity:
-#         book.quantity = quantity
-#
-#     if author:
-#         au = Author.query.filter(Author.name.__eq__(author)).first()
-#         book.author = au
-#
-#     if category:
-#         cate = Category.query.filter(Category.name.__eq__(category)).first()
-#         book.category = cate
-#
-#     db.session.commit()
-#     return True
+def update_book_rating(book_id):
+    avg_rating = db.session.query(func.avg(Comment.rating))\
+        .filter(Comment.book_id == book_id).scalar() or 0.0
+
+    book = Book.query.get(book_id)
+    book.average_rating = round(avg_rating, 2)
+    db.session.commit()
+
+    return book
+
+def add_comment(content, book_id, current_user_id, rating):
+    c = Comment(content=content, book_id=book_id, user_id=current_user_id, rating=rating)
+    db.session.add(c)
+    db.session.commit()
+    return c
