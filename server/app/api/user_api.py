@@ -1,5 +1,4 @@
 from flask import request
-
 from app.dao import dao_user
 from flask_restx import Resource
 from app.api_conf import user_ns, user_model, user_creation_parser, message_model, user_parser
@@ -14,7 +13,7 @@ class UserList(Resource):
     @user_ns.expect(user_parser)
     @jwt_required()
     def get(self):
-        '''Lấy danh sách tất cả người dùng, lấy theo username (query param)'''
+        """Lấy danh sách tất cả người dùng, lấy theo username (query param)"""
         un = request.args.get('un')
         return dao_user.get_users_list(un=un)
 
@@ -22,7 +21,7 @@ class UserList(Resource):
     @user_ns.expect(user_creation_parser)  # Định nghĩa định dạng request body cho Swagger UI
     @user_ns.marshal_with(user_model, code=201)  # Định nghĩa định dạng response và mã trạng thái khi tạo thành công
     def post(self):
-        '''Tạo một người dùng mới, dùng khi đăng ký tài khoản'''
+        """Tạo một người dùng mới, dùng khi đăng ký tài khoản"""
         # Lấy dữ liệu từ request body thông qua parser đã định nghĩa
         args = user_creation_parser.parse_args()
         avatar = args['avatar']
@@ -45,12 +44,9 @@ class UserList(Resource):
 
         return 500
 
-'''Định nghĩa Resource cho một người dùng cụ thể (GET, DELETE)'''
-@user_ns.route('/<int:user_id>') # Liên kết với namespace 'users' và route '/<id>'
-@user_ns.param('user_id', 'ID của người dùng') # Mô tả tham số URL cho Swagger UI
+@user_ns.route('/<int:user_id>')
+@user_ns.param('user_id', 'ID của người dùng')
 class User(Resource):
-    '''Hiển thị một người dùng cụ thể, và cho phép xóa người dùng đó'''
-
     @user_ns.doc('get_user')
     @user_ns.marshal_with(user_model)
     @jwt_required()
@@ -65,7 +61,7 @@ class User(Resource):
     @user_ns.marshal_with(message_model)
     @jwt_required()
     def delete(self, user_id):
-        ''' Xoá người dùng theo ID '''
+        """ Xoá người dùng theo ID """
         user_to_delete = dao_user.get_user_by_id(user_id)
 
         if user_to_delete is None:
@@ -76,7 +72,7 @@ class User(Resource):
         if deleted:
             return '', 204
 
-        return {"message": "Lỗi khi thực hiện xáo người dùng"}, 500
+        return {"message": "Lỗi khi thực hiện xoá người dùng"}, 500
 
 
 user_ns.add_resource(UserList, '/')

@@ -69,7 +69,7 @@ def add_comment(content, book_id, current_user_id, rating):
     db.session.commit()
     return c
 
-def get_comment(book_id):
+def get_comments_by_book_id(book_id):
     c = Comment.query.filter(Comment.book_id == book_id).all()
 
     if c is None:
