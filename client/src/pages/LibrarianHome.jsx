@@ -16,11 +16,7 @@ const LibrarianHome = () => {
       {" "}
       {/* <-- Thêm flex layout */}
       <Sidebar>
-        <SidebarItem
-          icon={<Receipt />}
-          text="Quản lý sách"
-          to="/managements/invoice"
-        />
+        <SidebarItem icon={<Receipt />} text="Quản lý sách" to="/book-manage" />
         <SidebarItem
           icon={<BanknoteArrowUp />}
           text="Duyệt mượn"

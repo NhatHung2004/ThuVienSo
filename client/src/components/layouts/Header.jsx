@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useContext, useState } from "react";
 import {
   Dialog,
   DialogPanel,
@@ -27,6 +27,7 @@ import {
   PlayCircleIcon,
 } from "@heroicons/react/20/solid";
 import { Link } from "react-router-dom";
+import { MyUserContext, MyUserDispatchContext } from "../../configs/MyContext";
 
 const callsToAction = [
   { name: "Watch demo", href: "#", icon: PlayCircleIcon },
@@ -36,6 +37,8 @@ const callsToAction = [
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("");
+  const user = useContext(MyUserContext);
+  const dispatch = useContext(MyUserDispatchContext);
 
   return (
     <header className="bg-white">
@@ -156,9 +159,20 @@ export default function Header() {
           </form>
         </div>
         <div className="hidden lg:flex lg:flex-1 lg:justify-end">
-          <a href="#" className="text-sm/6 font-semibold text-gray-900">
-            Đăng nhập <span aria-hidden="true">&rarr;</span>
-          </a>
+          {!user ? (
+            <Link to="/login" className="text-sm/6 font-semibold text-gray-900">
+              Đăng nhập <span aria-hidden="true">&rarr;</span>
+            </Link>
+          ) : (
+            <button
+              onClick={() => {
+                dispatch({ type: "logout" });
+              }}
+              className="text-sm/6 font-semibold text-gray-900 cursor-pointer"
+            >
+              Đăng xuất <span aria-hidden="true"></span>
+            </button>
+          )}
         </div>
       </nav>
       <Dialog
@@ -212,12 +226,14 @@ export default function Header() {
                 </Link>
               </div>
               <div className="py-6">
-                <a
-                  href="#"
-                  className="-mx-3 block rounded-lg px-3 py-2.5 text-base/7 font-semibold text-gray-900 hover:bg-gray-50"
-                >
-                  Đăng nhập
-                </a>
+                {!user && (
+                  <Link
+                    to="/login"
+                    className="-mx-3 block rounded-lg px-3 py-2.5 text-base/7 font-semibold text-gray-900 hover:bg-gray-50"
+                  >
+                    Đăng nhập <span aria-hidden="true">&rarr;</span>
+                  </Link>
+                )}
               </div>
             </div>
           </div>

@@ -408,11 +408,7 @@ const AllBooks = () => {
         </div>
       </div>
 
-      <hr className="w-full h-[1px] bg-gray-300 my-4 border-none mt-15" />
-      <div className="w-full">
-        <LoginRequire />
-      </div>
-      <hr className="w-full h-[1px] bg-gray-300 my-4 border-none" />
+      <hr className="w-full h-[1px] md:mt-20 bg-gray-300 my-4 border-none" />
     </div>
   );
 };

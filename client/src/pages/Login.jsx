@@ -27,10 +27,13 @@ const Login = () => {
       let res = await Apis.post("/auth/login", data);
       console.log(res.data.access_token);
       cookie.save("token", res.data.access_token);
-      let user = await authApis().get(`/users/${username}`);
-      console.log(user.data);
+      let user = await authApis().get(`/users/${res.data.user_id}`);
       dispatch({ type: "login", payload: user.data });
-      navigate("/");
+      if (user.data.role === "UserRole.LIBRARIAN") {
+        navigate("/librarian-home");
+      } else {
+        navigate("/");
+      }
     } catch {
       console.log("Có lỗi xảy ra!!!");
     }

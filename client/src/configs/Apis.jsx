@@ -9,7 +9,6 @@ export const authApis = () => {
     headers: {
       Authorization: `Bearer ${cookie.load("token")}`,
     },
-    withCredentials: true, // 👈 Thêm dòng này
   });
 };
 

@@ -1,10 +1,13 @@
 import { MoreVertical, ChevronLast, ChevronFirst } from "lucide-react";
 import { useContext, createContext, useState } from "react";
+import { MyUserContext } from "../../configs/MyContext";
+import { useNavigate } from "react-router-dom";
 
 const SidebarContext = createContext();
 
 export default function Sidebar({ children }) {
   const [expanded, setExpanded] = useState(true);
+  const user = useContext(MyUserContext);
 
   return (
     <aside className="h-screen">
@@ -30,11 +33,7 @@ export default function Sidebar({ children }) {
         </SidebarContext.Provider>
 
         <div className="border-t flex p-3">
-          <img
-            src="https://ui-avatars.com/api/?background=c7d2fe&color=3730a3&bold=true"
-            alt=""
-            className="w-10 h-10 rounded-md"
-          />
+          <img src={user.avatar} alt="" className="w-10 h-10 rounded-md" />
           <div
             className={`
               flex justify-between items-center
@@ -42,8 +41,10 @@ export default function Sidebar({ children }) {
           `}
           >
             <div className="leading-4">
-              <h4 className="font-semibold">John Doe</h4>
-              <span className="text-xs text-gray-600">johndoe@gmail.com</span>
+              <h4 className="font-semibold">
+                {user.firstname} {user.lastname}
+              </h4>
+              <span className="text-xs text-gray-600">{user.email}</span>
             </div>
             <MoreVertical size={20} />
           </div>
@@ -53,8 +54,14 @@ export default function Sidebar({ children }) {
   );
 }
 
-export function SidebarItem({ icon, text, active, alert }) {
+export function SidebarItem({ icon, text, active, alert, to }) {
   const { expanded } = useContext(SidebarContext);
+
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate(to);
+  };
 
   return (
     <li
@@ -68,6 +75,7 @@ export function SidebarItem({ icon, text, active, alert }) {
             : "hover:bg-indigo-50 text-gray-600"
         }
     `}
+      onClick={handleClick}
     >
       {icon}
       <span
