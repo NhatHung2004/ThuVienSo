@@ -76,7 +76,7 @@ class User(Resource):
         if deleted:
             return '', 204
 
-        return {"message": "Lỗi khi thực hiện xáo người dùng"}, 500
+        return {"message": "Lỗi khi thực hiện xoá người dùng"}, 500
         
 
 
