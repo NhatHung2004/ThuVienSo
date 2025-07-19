@@ -23,6 +23,8 @@ user_ns = api.namespace('users', description='Các thao tác liên quan đến n
 auth_ns = api.namespace('auth', description='Các thao tác liên quan đến chứng thực người dùng')
 category_ns = api.namespace('categories', description='Các thao tác liên quan đến thể loại sách')
 book_ns = api.namespace('books', description='Các thao tác liên quan đến sách')
+comment_ns = api.namespace('comments', description='Các thao tác liên quan đến bình luận sách')
+author_ns = api.namespace('authors', description='Các thao tác liên quan đến tác giả')
 
 @api.errorhandler(NoAuthorizationError)
 def handle_no_authorization_error(error):
@@ -61,11 +63,17 @@ book_model = api.model('Book', {
 })
 
 comment_model = api.model('Comment', {
+    'id': fields.Integer(readOnly=True, description='ID duy nhất của bình luận'),
     'content': fields.String(required=True, description='Nội dung bình luận'),
     'rating': fields.Integer(required=True, description='Đánh giá'),
     'book_id': fields.Integer(required=True, description='Mã sách'),
     'user_id': fields.Integer(required=True, description='Người bình luận'),
     'created_date': fields.DateTime(required=True, description='Ngày bình luận')
+})
+
+author_model = api.model('Author', {
+    'id': fields.Integer(readOnly=True, description='ID duy nhất của tác giả'),
+    'name': fields.String(required=True, description='Tên tác giả'),
 })
 
 # --- Định nghĩa Parsers cho Swagger UI ---
@@ -85,6 +93,10 @@ user_creation_parser.add_argument('avatar', type=FileStorage, required=False, he
 ''' GET USER '''
 user_parser = reqparse.RequestParser()
 user_parser.add_argument('un', type=str, location='args', help='Tìm kiếm theo username')
+
+''' GET CATEGORY '''
+get_category_parser = reqparse.RequestParser()
+get_category_parser.add_argument('kw', type=str, location='args', help='Tìm kiếm theo name')
 
 ''' AUTH '''
 auth_parser = reqparse.RequestParser()
@@ -115,6 +127,14 @@ book_update_parser.add_argument('category', type=str, help='Loại sách', locat
 
 ''' Comment '''
 comment_parser = reqparse.RequestParser()
-comment_parser.add_argument('content', type=str, help='Bình luận')
-comment_parser.add_argument('user_id', type=int, help='Người bình luận')
+comment_parser.add_argument('content', required=True, type=str, help='Bình luận')
+comment_parser.add_argument('user_id', required=True, type=int, help='Người bình luận')
 comment_parser.add_argument('rating', type=int, help='Đánh giá sao')
+
+''' Author '''
+author_parser = reqparse.RequestParser()
+author_parser.add_argument('name', type=str, required=True, help='Tên tác giả')
+
+''' Get author '''
+get_author_parser = reqparse.RequestParser()
+get_author_parser.add_argument('name', location='args', type=str, help='Tên tác giả')
