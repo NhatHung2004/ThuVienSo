@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Sidebar, { SidebarItem } from "../components/layouts/Sidebar";
-import { Apis } from "../configs/Apis";
+import { Apis, authApis } from "../configs/Apis";
 import {
   Receipt,
   Package,
@@ -32,7 +32,7 @@ const BookManage = () => {
   const fetchBooks = async () => {
     setLoading(true);
     try {
-      const res = await Apis.get("/books/");
+      const res = await authApis().get("/books/");
       setBooks(res.data);
       console.log(res.data);
     } catch {
@@ -46,7 +46,7 @@ const BookManage = () => {
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const res = await Apis.get("/categories/");
+      const res = await authApis().get("/categories/");
       setCates(res.data);
       if (res.data.length > 0) setSelectedCategory(res.data[0].name);
     } catch {

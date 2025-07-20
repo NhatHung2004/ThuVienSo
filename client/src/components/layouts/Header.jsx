@@ -28,7 +28,7 @@ import {
 } from "@heroicons/react/20/solid";
 import { Link } from "react-router-dom";
 import { MyUserContext, MyUserDispatchContext } from "../../configs/MyContext";
-import { Apis } from "../../configs/Apis";
+import { Apis, authApis } from "../../configs/Apis";
 
 const callsToAction = [
   { name: "Watch demo", href: "#", icon: PlayCircleIcon },
@@ -47,9 +47,8 @@ export default function Header() {
   const [showDropdown, setShowDropdown] = useState(false);
   const fetchBooks = async () => {
     try {
-      const res = await Apis.get("/books/");
+      const res = await authApis().get("/books/");
       setBooks(res.data);
-      console.log(res.data);
     } catch {
       console.log("Có lỗi khi tải danh sách sách");
     }

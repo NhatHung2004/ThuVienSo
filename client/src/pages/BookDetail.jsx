@@ -2,27 +2,80 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Book2 from "../components/layouts/Book2";
 import { useParams } from "react-router-dom";
-import { Apis } from "../configs/Apis";
+import { Apis, authApis } from "../configs/Apis";
 
 const BookDetail = () => {
   const { bookId } = useParams();
   const [book, setBook] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [author, setAuthor] = useState(null);
+
   const fetchBookFromBookId = async () => {
     try {
-      let res = await Apis.get(`/books/${bookId}`);
+      let res = await authApis().get(`/books/${bookId}`);
       setBook(res.data); // <-- set state
     } catch (error) {
       console.log("Có lỗi ", error);
     }
   };
 
+  const fetchUserByUserId = async (userId) => {
+    try {
+      let res = await authApis().get(`/users/${userId}`);
+      return res.data;
+    } catch {
+      console.log("Có lỗi khi lấy dữ liệu tác giả");
+      return { name: "Ẩn danh" };
+    }
+  };
+
+  const fetchAuthorByAuthorId = async () => {
+    try {
+      console.log(book.author_id);
+      let res = await authApis().get(`/authors/${book.author_id}`);
+      console.log(res.data);
+      setAuthor(res.data);
+    } catch {
+      console.log("Có lỗi khi lấy dữ liệu tác giả");
+    }
+  };
+
+  const fetchComment = async () => {
+    try {
+      let res = await authApis().get(`/books/${bookId}/comments`);
+      const commentData = res.data;
+
+      const commentsWithUser = await Promise.all(
+        commentData.map(async (cmt) => {
+          const user = await fetchUserByUserId(cmt.user_id);
+          return { ...cmt, firstname: user.firstname, lastname: user.lastname };
+        })
+      );
+      setComments(commentsWithUser);
+    } catch {
+      console.log("Có lỗi khi lấy dữ liệu bình luận");
+      setComments([]);
+    }
+  };
+
   useEffect(() => {
     fetchBookFromBookId();
+    fetchComment();
   }, [bookId]);
+
+  useEffect(() => {
+    if (book?.author_id) {
+      fetchAuthorByAuthorId(book.author_id);
+    }
+  }, [book]);
 
   //Nếu chưa có book thì hiện như trên tránh lần render đầu tiên book là null vì khai báo book là null
   if (!book) {
     return <div>Đang tải dữ liệu sách...</div>;
+  }
+
+  if (!author) {
+    return <div>Đang tải dữ liệu tác giả...</div>;
   }
 
   return (
@@ -72,7 +125,7 @@ const BookDetail = () => {
                     <h1 className="text-2xl font-bold text-gray-800">
                       {book.title}
                     </h1>
-                    <p className="text-gray-600 mt-1">Đối Nguyên Du</p>
+                    <p className="text-gray-600 mt-1">Bởi {author.name}</p>
                     <div className="flex items-center mt-2">
                       <div className="flex">
                         {[...Array(5)].map((_, i) => (
@@ -154,34 +207,46 @@ const BookDetail = () => {
               </button>
             </div>
 
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className={`py-4 ${i > 1 ? "border-t border-gray-200" : ""}`}
-              >
-                <div className="flex justify-between items-center">
-                  <p className="font-medium text-gray-800">Nguyễn Văn A</p>
-                  <span className="text-sm text-gray-500">20/11/2024</span>
+            {comments.length > 0 ? (
+              comments.map((cmt) => (
+                <div
+                  key={cmt.id}
+                  className="py-4 border-t border-gray-200 first:border-t-0"
+                >
+                  <div className="flex justify-between items-center">
+                    <p className="font-medium text-gray-800">
+                      {cmt.firstname && cmt.lastname
+                        ? `${cmt.firstname} ${cmt.lastname}`
+                        : `Người dùng #${cmt.user_id}`}
+                    </p>
+                    <span className="text-sm text-gray-500">
+                      {new Date(cmt.created_date).toLocaleDateString("vi-VN")}
+                    </span>
+                  </div>
+                  <div className="flex mt-1">
+                    {[...Array(5)].map((_, starIdx) => (
+                      <svg
+                        key={starIdx}
+                        className={`w-4 h-4 ${
+                          starIdx < cmt.rating
+                            ? "text-yellow-400"
+                            : "text-gray-300"
+                        }`}
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-sm text-gray-600">{cmt.content}</p>
                 </div>
-                <div className="flex mt-1">
-                  {[...Array(5)].map((_, starIdx) => (
-                    <svg
-                      key={starIdx}
-                      className={`w-4 h-4 ${
-                        starIdx < 5 ? "text-yellow-400" : "text-gray-300"
-                      }`}
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
-                </div>
-                <p className="mt-2 text-sm text-gray-600">
-                  Tác phẩm hay, ý nghĩa, nội dung sâu sắc, đáng đọc...
-                </p>
+              ))
+            ) : (
+              <div className="text-gray-500 italic text-sm mt-2">
+                Chưa có ai bình luận cả 🥲
               </div>
-            ))}
+            )}
           </div>
         </div>
         <div className="w-[90%] md:w-[20%] mx-auto md:mx-0 border rounded-2xl mt-10 border-gray-200 bg-white p-4 h-fit md:ml-10 md:mr-50 md:mt-20">
