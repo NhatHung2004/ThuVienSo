@@ -13,6 +13,8 @@ import {
   X,
 } from "lucide-react";
 
+import { useNavigate } from "react-router-dom";
+
 const BookManage = () => {
   const [loading, setLoading] = useState(false);
   const [cates, setCates] = useState([]);
@@ -25,6 +27,7 @@ const BookManage = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const navigate = useNavigate();
 
   const fetchBooks = async () => {
     setLoading(true);
@@ -247,18 +250,14 @@ const BookManage = () => {
         <SidebarItem
           icon={<BanknoteArrowUp />}
           text="Duyệt mượn"
-          to="/managements/invoice-manage"
+          to="/book-request"
         />
         <SidebarItem
           icon={<ClipboardList />}
           text="Lịch sử mượn"
-          to="/managements/create-survey"
+          to="/history-librarian"
         />
-        <SidebarItem
-          icon={<BarChart2 />}
-          text="Thống kê"
-          to="/managements/survey-statistics"
-        />
+        <SidebarItem icon={<BarChart2 />} text="Thống kê" to="/stat" />
       </Sidebar>
 
       {/* Nội dung chính */}
@@ -412,7 +411,10 @@ const BookManage = () => {
                             <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                           </svg>
                         </button>
-                        <button className="text-green-600 hover:text-green-800">
+                        <button
+                          onClick={() => navigate(`/book-detail/${book.id}`)}
+                          className="text-green-600 hover:text-green-800"
+                        >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             className="h-5 w-5"

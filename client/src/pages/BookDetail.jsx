@@ -1,12 +1,29 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Book2 from "../components/layouts/Book2";
-import { useLocation } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { Apis } from "../configs/Apis";
 
 const BookDetail = () => {
-  const location = useLocation();
-  const book = location.state; // đề phòng null
-  if (!book) return <p>Không có dữ liệu sách 😢</p>;
+  const { bookId } = useParams();
+  const [book, setBook] = useState(null);
+  const fetchBookFromBookId = async () => {
+    try {
+      let res = await Apis.get(`/books/${bookId}`);
+      setBook(res.data); // <-- set state
+    } catch (error) {
+      console.log("Có lỗi ", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchBookFromBookId();
+  }, [bookId]);
+
+  //Nếu chưa có book thì hiện như trên tránh lần render đầu tiên book là null vì khai báo book là null
+  if (!book) {
+    return <div>Đang tải dữ liệu sách...</div>;
+  }
 
   return (
     <div className="w-full min-h-screen bg-white">

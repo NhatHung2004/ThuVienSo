@@ -27,11 +27,7 @@ const LibrarianHome = () => {
           text="Lịch sử mượn"
           to="/managements/create-survey"
         />
-        <SidebarItem
-          icon={<BarChart2 />}
-          text="Thống kê"
-          to="/managements/survey-statistics"
-        />
+        <SidebarItem icon={<BarChart2 />} text="Thống kê" to="/stat" />
       </Sidebar>
       {/* Nội dung chính có thể đặt ở đây */}
       <div className="flex-1 p-4">

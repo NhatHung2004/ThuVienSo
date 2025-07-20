@@ -11,6 +11,9 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import LibrarianHome from "./pages/LibrarianHome";
 import BookManage from "./pages/BookManage";
+import BookRequest from "./pages/BookRequest";
+import HistoryAcpt from "./pages/HistoryAcpt";
+import Stat from "./pages/Stat";
 import { MyUserContext, MyUserDispatchContext } from "./configs/MyContext";
 import MyUserReducer from "./reducer/MyUserReducer";
 const Layout = ({ children }) => {
@@ -20,18 +23,27 @@ const Layout = ({ children }) => {
   const isBookLibrarianHomePage = location.pathname.includes("/librarian-home");
   const isRegisterPage = location.pathname.includes("/register");
   const isBookManage = location.pathname.includes("book-manage");
+  const isBookRequest = location.pathname.includes("book-request");
+  const isStatPage = location.pathname.includes("stat");
+  const isHitoryAcpt = location.pathname.includes("history-librarian");
   return (
     <>
       {!isLoginPage &&
         !isBookDetailsPage &&
         !isBookLibrarianHomePage &&
         !isRegisterPage &&
-        !isBookManage && <Header />}
+        !isBookManage &&
+        !isBookRequest &&
+        !isStatPage &&
+        !isHitoryAcpt && <Header />}
       {children}
       {!isLoginPage &&
         !isBookLibrarianHomePage &&
         !isBookManage &&
-        !isRegisterPage && <Footer />}
+        !isRegisterPage &&
+        !isBookRequest &&
+        !isStatPage &&
+        !isHitoryAcpt && <Footer />}
     </>
   );
 };
@@ -53,9 +65,12 @@ const App = () => {
               <Route path="/cart" element={<Cart />} />
               <Route path="/history" element={<HistoryReq />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/book-detail" element={<BookDetails />} />
+              <Route path="/book-detail/:bookId" element={<BookDetails />} />
               <Route path="/librarian-home" element={<LibrarianHome />} />
               <Route path="/book-manage" element={<BookManage />} />
+              <Route path="/book-request" element={<BookRequest />} />
+              <Route path="/stat" element={<Stat />} />
+              <Route path="/history-librarian" element={<HistoryAcpt />} />
             </Routes>
           </Layout>
         </BrowserRouter>
