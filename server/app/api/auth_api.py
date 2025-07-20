@@ -9,7 +9,7 @@ class Login(Resource):
     @auth_ns.doc('login_user')
     @auth_ns.expect(auth_parser)
     def post(self):
-        ''' Đăng nhập '''
+        """ Đăng nhập """
         args = auth_parser.parse_args()
         username = args['username']
         password = args['password']
