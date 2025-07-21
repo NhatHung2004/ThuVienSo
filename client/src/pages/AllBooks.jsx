@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Book2 from "../components/layouts/Book2";
 import LoginRequire from "../components/layouts/LoginRequire";
-import Apis from "../configs/Apis";
+import { Apis, authApis } from "../configs/Apis";
 
 const AllBooks = () => {
   const [books, setBooks] = useState([]);
@@ -15,9 +15,8 @@ const AllBooks = () => {
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const res = await Apis.get("/categories/");
+      const res = await authApis().get("/categories/");
       setCates(res.data);
-      console.log(res.data);
     } catch {
       setLoading(false);
       console.log("Có lỗi khi tải danh sách sách phân loại");
@@ -29,9 +28,8 @@ const AllBooks = () => {
   const fetchBooks = async () => {
     setLoading(true);
     try {
-      const res = await Apis.get("/books/");
+      const res = await authApis().get("/books/");
       setBooks(res.data);
-      console.log(res.data);
     } catch {
       setLoading(false);
       console.log("Có lỗi khi tải danh sách sách");
@@ -408,11 +406,7 @@ const AllBooks = () => {
         </div>
       </div>
 
-      <hr className="w-full h-[1px] bg-gray-300 my-4 border-none mt-15" />
-      <div className="w-full">
-        <LoginRequire />
-      </div>
-      <hr className="w-full h-[1px] bg-gray-300 my-4 border-none" />
+      <hr className="w-full h-[1px] md:mt-20 bg-gray-300 my-4 border-none" />
     </div>
   );
 };

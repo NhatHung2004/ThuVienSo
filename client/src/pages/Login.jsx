@@ -1,12 +1,14 @@
 import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import Apis from "../configs/Apis";
+import { authApis, Apis } from "../configs/Apis";
 import cookie from "react-cookies";
+import { MyUserDispatchContext } from "../configs/MyContext";
 
 const Login = () => {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [pw, setPw] = useState("");
+  const dispatch = useContext(MyUserDispatchContext);
 
   const login = async (e) => {
     e.preventDefault();
@@ -23,8 +25,15 @@ const Login = () => {
 
     try {
       let res = await Apis.post("/auth/login", data);
-      cookie.save(res.data.access_token);
-      navigate("/");
+      console.log(res.data.access_token);
+      cookie.save("token", res.data.access_token);
+      let user = await authApis().get(`/users/${res.data.user_id}`);
+      dispatch({ type: "login", payload: user.data });
+      if (user.data.role === "UserRole.LIBRARIAN") {
+        navigate("/librarian-home");
+      } else {
+        navigate("/");
+      }
     } catch {
       console.log("Có lỗi xảy ra!!!");
     }
