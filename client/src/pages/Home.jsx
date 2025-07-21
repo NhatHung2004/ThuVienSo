@@ -1,11 +1,13 @@
-import React from "react";
+import React, { useContext } from "react";
 import "../layouts/Home.css";
 import Book from "../components/layouts/Book";
 import LoginRequire from "../components/layouts/LoginRequire";
 import { useNavigate, Link } from "react-router-dom";
+import { MyUserContext } from "../configs/MyContext";
 
 const Home = () => {
   const navigate = useNavigate();
+  const user = useContext(MyUserContext);
   return (
     <div className="w-full min-h-screen bg-white">
       <div className="relative w-full p-6">
@@ -168,9 +170,11 @@ const Home = () => {
           <Book />
         </div>
         <hr className="w-full h-[1px] bg-gray-300 my-4 border-none mt-15" />
-        <div className="w-full">
-          <LoginRequire />
-        </div>
+        {!user && (
+          <div className="w-full">
+            <LoginRequire />
+          </div>
+        )}
         <hr className="w-full h-[1px] bg-gray-300 my-4 border-none" />
       </div>
     </div>

@@ -6,7 +6,8 @@ const Book2 = ({ book }) => {
 
   return (
     <Link
-      to="/book-detail"
+      to={`/book-detail/${book.id}`}
+      state={{ book }}
       className="mx-auto w-[190px] sm:w-[180px] md:w-[220px] lg:w-[240px]"
     >
       {/* Container bìa sách */}

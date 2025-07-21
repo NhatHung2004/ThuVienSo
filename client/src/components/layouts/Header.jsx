@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   Dialog,
   DialogPanel,
@@ -27,6 +27,8 @@ import {
   PlayCircleIcon,
 } from "@heroicons/react/20/solid";
 import { Link } from "react-router-dom";
+import { MyUserContext, MyUserDispatchContext } from "../../configs/MyContext";
+import { Apis, authApis } from "../../configs/Apis";
 
 const callsToAction = [
   { name: "Watch demo", href: "#", icon: PlayCircleIcon },
@@ -36,6 +38,40 @@ const callsToAction = [
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("");
+  const user = useContext(MyUserContext);
+  const dispatch = useContext(MyUserDispatchContext);
+  const [books, setBooks] = useState([]);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredBooks, setFilteredBooks] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const fetchBooks = async () => {
+    try {
+      const res = await authApis().get("/books/");
+      setBooks(res.data);
+    } catch {
+      console.log("Có lỗi khi tải danh sách sách");
+    }
+  };
+
+  useEffect(() => {
+    fetchBooks();
+  }, []);
+
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredBooks([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    const filtered = books.filter((book) =>
+      book.title.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    setFilteredBooks(filtered);
+    setShowDropdown(true);
+  }, [searchTerm, books]);
 
   return (
     <header className="bg-white">
@@ -136,8 +172,13 @@ export default function Header() {
                 name="q"
                 id="search"
                 placeholder="Tìm kiếm sách"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onFocus={() => setShowDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                 className="w-[550px] rounded-xl border border-gray-300 px-4 py-2 pl-10 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
+
               <svg
                 className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
                 xmlns="http://www.w3.org/2000/svg"
@@ -152,13 +193,50 @@ export default function Header() {
                   d="M21 21l-4.35-4.35M10 18a8 8 0 100-16 8 8 0 000 16z"
                 />
               </svg>
+              {showDropdown && (
+                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow max-h-60 overflow-y-auto">
+                  {filteredBooks.length > 0 ? (
+                    filteredBooks.map((book) => (
+                      <Link
+                        to={`/book-detail/${book.id}`} // hoặc route của bạn
+                        key={book.id}
+                        className="flex items-center px-4 py-2 hover:bg-gray-100 text-sm text-gray-800 gap-3"
+                      >
+                        <img
+                          src={
+                            book.image || "https://via.placeholder.com/40x60"
+                          }
+                          alt={book.title}
+                          className="w-10 h-14 object-cover rounded-md"
+                        />
+                        <span>{book.title}</span>
+                      </Link>
+                    ))
+                  ) : (
+                    <div className="px-4 py-2 text-sm text-gray-500">
+                      Không có sách bạn muốn tìm
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </form>
         </div>
         <div className="hidden lg:flex lg:flex-1 lg:justify-end">
-          <a href="#" className="text-sm/6 font-semibold text-gray-900">
-            Đăng nhập <span aria-hidden="true">&rarr;</span>
-          </a>
+          {!user ? (
+            <Link to="/login" className="text-sm/6 font-semibold text-gray-900">
+              Đăng nhập <span aria-hidden="true">&rarr;</span>
+            </Link>
+          ) : (
+            <button
+              onClick={() => {
+                dispatch({ type: "logout" });
+              }}
+              className="text-sm/6 font-semibold text-gray-900 cursor-pointer"
+            >
+              Đăng xuất <span aria-hidden="true"></span>
+            </button>
+          )}
         </div>
       </nav>
       <Dialog
@@ -212,12 +290,14 @@ export default function Header() {
                 </Link>
               </div>
               <div className="py-6">
-                <a
-                  href="#"
-                  className="-mx-3 block rounded-lg px-3 py-2.5 text-base/7 font-semibold text-gray-900 hover:bg-gray-50"
-                >
-                  Đăng nhập
-                </a>
+                {!user && (
+                  <Link
+                    to="/login"
+                    className="-mx-3 block rounded-lg px-3 py-2.5 text-base/7 font-semibold text-gray-900 hover:bg-gray-50"
+                  >
+                    Đăng nhập <span aria-hidden="true">&rarr;</span>
+                  </Link>
+                )}
               </div>
             </div>
           </div>

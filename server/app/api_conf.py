@@ -39,7 +39,8 @@ user_model = api.model('User', {
     'email': fields.String(required=True, description='Địa chỉ email của người dùng'),
     'firstname': fields.String(required=True, description='Tên của người dùng'),
     'lastname': fields.String(required=True, description='Họ của người dùng'),
-    'avatar': fields.String(required=True, description='Ảnh của người dùng')
+    'avatar': fields.String(required=True, description='Ảnh của người dùng'),
+    'role': fields.String(required=True, description='Vai trò của người dùng')
 })
 
 message_model = api.model('Message', {
