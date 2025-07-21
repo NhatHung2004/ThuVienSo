@@ -2,7 +2,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from app import db
 from sqlalchemy import Column, String, Integer, Enum, ForeignKey, DateTime, Float
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship
 from enum import Enum as UserEnum
 import bcrypt
 
@@ -67,6 +67,7 @@ class Category(db.Model):
 
 class Request(db.Model):
     id = Column(Integer, primary_key=True, autoincrement=True)
+    status = Column(String(50))
     request_date = Column(DateTime, nullable=False, default=datetime.now(ZoneInfo("Asia/Ho_Chi_Minh")))
     return_date = Column(DateTime, nullable=False)
 
