@@ -9,7 +9,7 @@ class AuthorList(Resource):
     @author_ns.doc('get_author_list')
     @author_ns.expect(get_author_parser)
     @author_ns.marshal_list_with(author_model)
-    # @jwt_required()
+    @jwt_required()
     def get(self):
         """ Lấy danh sách tác giả, theo name (query param) """
         kw = request.args.get('kw')
@@ -23,7 +23,7 @@ class AuthorList(Resource):
     @author_ns.doc('create_author')
     @author_ns.expect(author_parser)
     @author_ns.marshal_with(author_model)
-    # @jwt_required()
+    @jwt_required()
     def post(self):
         """ Tạo tác giả """
         args = author_parser.parse_args()

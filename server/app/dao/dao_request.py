@@ -3,6 +3,14 @@ from zoneinfo import ZoneInfo
 from app.models import Request, RequestDetail, StatusCheck, Book
 from app import db
 
+def get_request_list(status=None):
+    reqs = Request.query
+
+    if status:
+        reqs = reqs.filter_by(status=status)
+
+    return reqs.all() or None
+
 def get_request_by_id(request_id):
     return Request.query.get(request_id)
 
@@ -73,6 +81,3 @@ def return_books(request_id):
 
     db.session.commit()
     return request
-
-def get_unchecked_requests():
-    return Request.query.filter_by(status=StatusCheck.PENDING).all()

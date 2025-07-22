@@ -1,5 +1,5 @@
 from app import db
-from app.models import User
+from app.models import User, Request
 import bcrypt
 
 def create_user(username, email, password, role=None, avatar=None, firstname=None, lastname=None):
@@ -44,3 +44,8 @@ def login(username, passsword):
 
     return user
 
+def get_request_by_user_id(user_id):
+    return Request.query.filter_by(user_id=user_id).all()
+
+def get_detail_request(request_id, user_id):
+    return Request.query.filter_by(id=request_id, user_id=user_id).first()
