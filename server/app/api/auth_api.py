@@ -18,7 +18,7 @@ class Login(Resource):
         if user is None:
             return jsonify({"msg": "Bad username or password"}), 401
 
-        access_token = create_access_token(identity=str(user.id))
+        access_token = create_access_token(identity=str(user.id), additional_claims={"role": user.role.value})
         refresh_token = create_refresh_token(identity=str(user.id))
 
         return jsonify({"user_id": user.id, "access_token": access_token, "refresh_token": refresh_token})

@@ -5,6 +5,8 @@ from flask_jwt_extended import jwt_required
 from app.dao import dao_book
 from flask import request
 from cloudinary import uploader
+from app.models import UserRole
+from app.utils.check_role import role_required
 
 @book_ns.route('/')
 class BooksList(Resource):
@@ -25,6 +27,7 @@ class BooksList(Resource):
     @book_ns.expect(book_parser)
     @book_ns.marshal_with(book_model)
     @jwt_required()
+    @role_required([UserRole.LIBRARIAN.value])
     def post(self):
         """ Thêm sách mới """
         args = book_parser.parse_args()
@@ -59,6 +62,7 @@ class Book(Resource):
     @book_ns.doc('delete_book')
     @book_ns.marshal_with(message_model)
     @jwt_required()
+    @role_required([UserRole.LIBRARIAN.value])
     def delete(self, book_id):
         """ Xoá sách theo ID """
         deleted = dao_book.delete_book_by_id(book_id)
@@ -72,6 +76,7 @@ class Book(Resource):
     @book_ns.expect(book_update_parser)
     @book_ns.marshal_with(book_model)
     @jwt_required()
+    @role_required([UserRole.LIBRARIAN.value])
     def patch(self, book_id):
         """ Cập nhật thông tin sách """
         args = book_update_parser.parse_args()

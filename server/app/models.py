@@ -3,13 +3,22 @@ from zoneinfo import ZoneInfo
 from app import db
 from sqlalchemy import Column, String, Integer, Enum, ForeignKey, DateTime, Float
 from sqlalchemy.orm import relationship
-from enum import Enum as UserEnum
+from enum import Enum as DataEnum
 import bcrypt
 
-class UserRole(UserEnum):
+class UserRole(DataEnum):
     ADMIN = 1
     LIBRARIAN = 2
     READER = 3
+
+class StatusCheck(DataEnum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    RETURNED = "RETURNED"
+
+    def __str__(self):
+        return str(self.value)
 
 class User(db.Model):
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -21,7 +30,8 @@ class User(db.Model):
     avatar = Column(String(250), default="https://res.cloudinary.com/dxeinnlqb/image/upload/v1752111470/user_etmacv.png")
     role = Column(Enum(UserRole), default=UserRole.READER)
 
-    requests = relationship("Request", backref="user", lazy=True)
+    requests = relationship("Request", backref="user", foreign_keys="Request.user_id", lazy=True)
+    approved_requests = relationship("Request", backref="librarian", foreign_keys="Request.librarian_id", lazy=True)
     comments = relationship("Comment", backref="user", cascade="all, delete-orphan", lazy=True)
 
     def __str__(self):
@@ -33,7 +43,7 @@ class User(db.Model):
 class Book(db.Model):
     id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String(50), nullable=False)
-    description = Column(String(200), nullable=False)
+    description = Column(String(500), nullable=False)
     image = Column(String(250), nullable=True)
     quantity = Column(Integer, nullable=False)
     average_rating = Column(Float, default=0)
@@ -67,11 +77,12 @@ class Category(db.Model):
 
 class Request(db.Model):
     id = Column(Integer, primary_key=True, autoincrement=True)
-    status = Column(String(50))
+    status = Column(Enum(StatusCheck), default=StatusCheck.PENDING)
     request_date = Column(DateTime, nullable=False, default=datetime.now(ZoneInfo("Asia/Ho_Chi_Minh")))
-    return_date = Column(DateTime, nullable=False)
+    return_date = Column(DateTime, nullable=True)
 
     user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
+    librarian_id = Column(Integer, ForeignKey('user.id'), nullable=True)
 
     request_details = relationship("RequestDetail", backref='request', cascade="all, delete-orphan", lazy=True)
 

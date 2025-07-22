@@ -31,7 +31,7 @@ def create_app():
     # Quan trọng: Import routes ở đây để đảm bảo các lớp Resource
     # được định nghĩa và đăng ký với Flask-RESTX Api instance.
     # Nếu không import, Flask-RESTX sẽ không "thấy" các Resource này.
-    from app.api import user_api, auth_api, book_api, category_api, comment_api, author_api
+    from app.api import user_api, auth_api, book_api, category_api, comment_api, author_api, request_api
 
     # Import models để SQLAlchemy biết các model của bạn
     from app import models

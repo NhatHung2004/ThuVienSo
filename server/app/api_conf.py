@@ -1,6 +1,7 @@
 from flask import Blueprint
 from flask_restx import Api, fields, reqparse
 from flask_jwt_extended.exceptions import NoAuthorizationError
+from werkzeug.exceptions import NotFound
 from werkzeug.datastructures import FileStorage
 
 # Tạo một Blueprint cho API. Blueprint này sẽ được đăng ký với ứng dụng Flask chính.
@@ -25,6 +26,7 @@ category_ns = api.namespace('categories', description='Các thao tác liên quan
 book_ns = api.namespace('books', description='Các thao tác liên quan đến sách')
 comment_ns = api.namespace('comments', description='Các thao tác liên quan đến bình luận sách')
 author_ns = api.namespace('authors', description='Các thao tác liên quan đến tác giả')
+request_ns = api.namespace('requests', description='Các thao tác liên quan đến mượn trả sách')
 
 @api.errorhandler(NoAuthorizationError)
 def handle_no_authorization_error(error):
@@ -74,6 +76,15 @@ comment_model = api.model('Comment', {
 author_model = api.model('Author', {
     'id': fields.Integer(readOnly=True, description='ID duy nhất của tác giả'),
     'name': fields.String(required=True, description='Tên tác giả'),
+})
+
+request_model = api.model('Request', {
+    'id': fields.Integer(readOnly=True, description='ID duy nhất của yêu cầu'),
+    'status': fields.String(required=True, description='Trạng thái yêu cầu'),
+    'request_date': fields.DateTime(required=True, description='Ngày tạo yêu cầu'),
+    'return_date': fields.DateTime(required=True, description='Ngày trả sách'),
+    'user_id': fields.Integer(required=True, description='ID người mượn'),
+    'librarian_id': fields.Integer(required=True, description='ID thủ thư duyệt'),
 })
 
 # --- Định nghĩa Parsers cho Swagger UI ---
@@ -138,3 +149,21 @@ author_parser.add_argument('name', type=str, required=True, help='Tên tác gi�
 ''' Get author '''
 get_author_parser = reqparse.RequestParser()
 get_author_parser.add_argument('name', location='args', type=str, help='Tên tác giả')
+
+''' Create request '''
+request_creation_parser = reqparse.RequestParser()
+request_creation_parser.add_argument('user_id', type=str, help='Người mượn sách')
+request_creation_parser.add_argument('books', type=list, help='Danh sách sách cần mượn')
+
+''' Accept request '''
+accepted_request_parser = reqparse.RequestParser()
+accepted_request_parser.add_argument('librarian_id', type=int, required=True, help='ID thủ thư duyệt yêu cầu')
+accepted_request_parser.add_argument('returned_date', type=str, required=True, help='Ngày trả sách')
+
+''' Decline request '''
+decline_request_parser = reqparse.RequestParser()
+decline_request_parser.add_argument('librarian_id', type=int, required=True, help='ID thủ thư duyệt yêu cầu')
+
+''' Get request '''
+get_request_parser = reqparse.RequestParser()
+get_request_parser.add_argument('status', type=str, location='args', help='Trạng thái yêu cầu')
