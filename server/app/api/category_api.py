@@ -3,6 +3,8 @@ from flask_jwt_extended import jwt_required
 from flask_restx import Resource
 from app.api_conf import category_parser, category_ns, category_model, get_category_parser
 from app.dao import dao_category
+from app.models import UserRole
+from app.utils.check_role import role_required
 
 @category_ns.route('/')
 class CategoryList(Resource):
@@ -18,6 +20,7 @@ class CategoryList(Resource):
     @category_ns.marshal_with(category_model)
     @category_ns.expect(category_parser)
     @jwt_required()
+    @role_required([UserRole.LIBRARIAN.value])
     def post(self):
         """ Thêm thể loại sách """
         args = category_parser.parse_args()

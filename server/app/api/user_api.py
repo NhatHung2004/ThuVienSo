@@ -1,17 +1,19 @@
 from flask import request
 from app.dao import dao_user
 from flask_restx import Resource
-from app.api_conf import user_ns, user_model, user_creation_parser, message_model, user_parser
+from app.api_conf import user_ns, user_model, user_creation_parser, message_model, user_parser, request_model
 from flask_jwt_extended import jwt_required
 from cloudinary import uploader
+from app.models import UserRole
+from app.utils.check_role import role_required
 
-'''Định nghĩa Resource cho danh sách người dùng (GET, POST)'''
 @user_ns.route('/')
 class UserList(Resource):
     @user_ns.doc('list_users')  # Mô tả operation cho Swagger UI
     @user_ns.marshal_list_with(user_model)  # Định nghĩa định dạng response khi trả về danh sách user
     @user_ns.expect(user_parser)
     @jwt_required()
+    @role_required([UserRole.LIBRARIAN.value])
     def get(self):
         """Lấy danh sách tất cả người dùng, lấy theo username (query param)"""
         un = request.args.get('un')
@@ -60,6 +62,7 @@ class User(Resource):
     @user_ns.doc('delete_user')
     @user_ns.marshal_with(message_model)
     @jwt_required()
+    @role_required([UserRole.LIBRARIAN.value])
     def delete(self, user_id):
         """ Xoá người dùng theo ID """
         user_to_delete = dao_user.get_user_by_id(user_id)
@@ -74,6 +77,29 @@ class User(Resource):
 
         return {"message": "Lỗi khi thực hiện xoá người dùng"}, 500
 
+@user_ns.route('/<int:user_id>/requests')
+class UserRequests(Resource):
+    @user_ns.doc('get_user_requests')
+    @user_ns.marshal_list_with(request_model)
+    @jwt_required()
+    def get(self, user_id):
+        """ Lịch sử yêu cầu """
+        reqs = dao_user.get_request_by_user_id(user_id)
+
+        return (reqs, 200) if reqs else ('', 404)
+
+@user_ns.route('/<int:user_id>/requests/<int:request_id>')
+class UserRequestsDetail(Resource):
+    @user_ns.doc('get_user_request_detail')
+    @user_ns.marshal_with(request_model)
+    # @jwt_required()
+    def get(self, user_id, request_id):
+        """ Lấy chi tiết request của user hiện tại """
+        req = dao_user.get_detail_request(request_id, user_id)
+
+        return (req, 200) if req else 404
 
 user_ns.add_resource(UserList, '/')
 user_ns.add_resource(User, '/<int:user_id>')
+user_ns.add_resource(UserRequests, '/<int:user_id>/requests')
+user_ns.add_resource(UserRequestsDetail, '/<int:user_id>/requests/<int:request_id>')
