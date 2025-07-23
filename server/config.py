@@ -10,6 +10,7 @@ class Config:
     SQLALCHEMY_DATABASE_URI = f"mysql+pymysql://root:{os.getenv('MYSQL_PASSWORD')}@localhost:3306/thuvien?charset=utf8mb4"
     SQLALCHEMY_TRACK_MODIFICATIONS = True
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
+    SECRET_KEY = os.getenv('SECRET_KEY')
 
     cloudinary.config(
         cloud_name=os.getenv("CLOUD_NAME"),
