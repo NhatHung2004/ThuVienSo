@@ -1,5 +1,5 @@
 from app import db
-from app.models import User, Request
+from app.models import User, Request, UserRole
 import bcrypt
 
 def create_user(username, email, password, role=None, avatar=None, firstname=None, lastname=None):
@@ -16,7 +16,7 @@ def create_user(username, email, password, role=None, avatar=None, firstname=Non
     return user
 
 def get_users_list(un=None):
-    users = User.query
+    users = User.query.filter_by(role=UserRole.READER)
 
     if un:
         users = users.filter(User.username.icontains(un))
@@ -36,8 +36,11 @@ def delete_user(user):
         return True
     return False
 
-def login(username, passsword):
-    user = db.session.query(User).filter_by(username=username).first()
+def login(username, passsword, role=None):
+    if role:
+        user = db.session.query(User).filter_by(username=username, role=role).first()
+    else:
+        user = db.session.query(User).filter_by(username=username).first()
 
     if user is None or not user.check_password(passsword):
         return None

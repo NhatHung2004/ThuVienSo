@@ -1,15 +1,16 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from app import db
+from app.extensions import db
 from sqlalchemy import Column, String, Integer, Enum, ForeignKey, DateTime, Float
 from sqlalchemy.orm import relationship
 from enum import Enum as DataEnum
 import bcrypt
+from flask_login import UserMixin
 
 class UserRole(DataEnum):
-    ADMIN = 1
-    LIBRARIAN = 2
-    READER = 3
+    ADMIN = "ADMIN"
+    LIBRARIAN = "LIBRARIAN"
+    READER = "READER"
 
 class StatusCheck(DataEnum):
     PENDING = "PENDING"
@@ -20,9 +21,9 @@ class StatusCheck(DataEnum):
     def __str__(self):
         return str(self.value)
 
-class User(db.Model):
+class User(db.Model, UserMixin):
     id = Column(Integer, primary_key=True, autoincrement=True)
-    username = Column(String(50), nullable=False)
+    username = Column(String(50), nullable=False, unique=True)
     password = Column(String(150), nullable=False)
     firstname = Column(String(50), nullable=True)
     lastname = Column(String(50), nullable=True)
@@ -35,12 +36,10 @@ class User(db.Model):
     comments = relationship("Comment", backref="user", cascade="all, delete-orphan", lazy=True)
 
     def __str__(self):
-        return self.name
+        return self.username
 
     def check_password(self, password):
         return bcrypt.checkpw(password.encode('utf-8'), self.password.encode('utf-8'))
-
-
 
 class Book(db.Model):
     id = Column(Integer, primary_key=True, autoincrement=True)

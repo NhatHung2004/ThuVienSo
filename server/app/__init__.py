@@ -1,16 +1,7 @@
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-from flask_jwt_extended import JWTManager
+from app.extensions import db, migrate, jwt, cors, login_manager, admin as admin_manager
 from config import Config
-
-from flask_cors import CORS
-
-
-db = SQLAlchemy()
-migrate = Migrate()
-jwt = JWTManager()
-cors = CORS()
+from app.admin import MyAdminIndexView
 
 def create_app():
     """
@@ -19,13 +10,13 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    
-
     # Khởi tạo SQLAlchemy và Migrate với app
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
     cors.init_app(app)
+    login_manager.init_app(app)
+    admin_manager.init_app(app, index_view=MyAdminIndexView())
 
     # Import và đăng ký Blueprint API
     # Chúng ta import api_bp từ app.api để đăng ký nó với ứng dụng Flask
