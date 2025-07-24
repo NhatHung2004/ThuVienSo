@@ -1,5 +1,6 @@
 #!/bin/sh
+export FLASK_APP=server/run.py
 echo "Running database migrations..."
-flask db upgrade
+python3 -m flask db upgrade
 echo "Starting gunicorn..."
-gunicorn server/run.py -b 0.0.0.0:$PORT --timeout 120 --workers 1
+python3 -m gunicorn server.run:app -b 0.0.0.0:$PORT --timeout 120 --workers 1
