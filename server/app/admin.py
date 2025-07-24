@@ -24,7 +24,8 @@ class MyView(BaseView):
 
 class ImagePreviewWidget(object):
     def __call__(self, field, **kwargs):
-        input_html = f'<input {" ".join(f"{k}=\"{v}\"" for k, v in kwargs.items())} type="file" name="{field.name}">'
+        attrs = ' '.join(f'{k}="{v}"' for k, v in kwargs.items())
+        input_html = f'<input {attrs} type="file" name="{field.name}">'
         if field.data:
             return Markup(f'<img src="{field.data}" width="150"><br>{input_html}')
         return Markup(input_html)
