@@ -2,6 +2,7 @@ from flask import Flask
 from app.extensions import db, migrate, jwt, cors, login_manager, admin as admin_manager
 from config import Config
 from app.admin import MyAdminIndexView
+import pymysql
 
 def create_app():
     """
@@ -9,6 +10,7 @@ def create_app():
     """
     app = Flask(__name__)
     app.config.from_object(Config)
+    pymysql.install_as_MySQLdb()
 
     # Khởi tạo SQLAlchemy và Migrate với app
     db.init_app(app)

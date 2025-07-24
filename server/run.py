@@ -8,6 +8,9 @@ from app.extensions import admin
 
 app = create_app()
 
+with app.app_context():
+    db.create_all()
+
 @app.route('/login-admin', methods=['POST'])
 def login():
     username = request.form.get('username')
