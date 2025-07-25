@@ -7,7 +7,7 @@ from app.utils.check_role import role_required
 
 @stats_ns.route('/book_frequency')
 class BookFrequency(Resource):
-    @jwt_required
+    @jwt_required()
     @role_required([UserRole.LIBRARIAN.value])
     @stats_ns.marshal_list_with(book_frequency_statistics_model)
     @stats_ns.expect(book_frequency_statistics_parser)
