@@ -37,11 +37,7 @@ const RegistartionForm = () => {
     formData.append("lastname", lastname);
 
     try {
-      await Apis.post("/users", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      await Apis.post("/users", formData);
       alert("Đăng ký thành công!!!");
       navigate("/login");
     } catch (error) {
