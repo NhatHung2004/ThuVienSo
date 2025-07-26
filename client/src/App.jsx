@@ -51,7 +51,10 @@ const Layout = ({ children }) => {
 const App = () => {
   const initialUser = localStorage.getItem("user")
     ? JSON.parse(localStorage.getItem("user"))
+    : sessionStorage.getItem("user")
+    ? JSON.parse(sessionStorage.getItem("user"))
     : null;
+
   const [user, dispatch] = useReducer(MyUserReducer, initialUser);
   return (
     <MyUserContext.Provider value={user}>
