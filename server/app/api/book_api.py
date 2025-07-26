@@ -49,7 +49,6 @@ class BooksList(Resource):
 class Book(Resource):
     @book_ns.doc('get_book')
     @book_ns.marshal_with(book_model)
-    @jwt_required()
     def get(self, book_id):
         """ Lấy sách theo ID """
         book = dao_book.get_book_by_id(book_id)
@@ -100,7 +99,6 @@ class BookCommentsList(Resource):
 
     @book_ns.doc('get_book_comments')
     @book_ns.marshal_with(comment_model)
-    @jwt_required()
     def get(self, book_id):
         """ Lấy bình luận theo id sách """
         c = dao_book.get_comments_by_book_id(book_id)

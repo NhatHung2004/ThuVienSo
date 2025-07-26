@@ -17,7 +17,7 @@ const AllBooks = () => {
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const res = await authApis().get("/categories/");
+      const res = await Apis.get("/categories/");
       setCates(res.data);
     } catch {
       setLoading(false);
@@ -30,7 +30,7 @@ const AllBooks = () => {
   const fetchBooks = async () => {
     setLoading(true);
     try {
-      const res = await authApis().get("/books/");
+      const res = await Apis.get("/books/");
       setBooks(res.data);
     } catch {
       setLoading(false);

@@ -12,7 +12,7 @@ const BookDetail = () => {
 
   const fetchBookFromBookId = async () => {
     try {
-      let res = await authApis().get(`/books/${bookId}`);
+      let res = await Apis.get(`/books/${bookId}`);
       setBook(res.data); // <-- set state
     } catch (error) {
       console.log("Có lỗi ", error);
@@ -21,7 +21,7 @@ const BookDetail = () => {
 
   const fetchUserByUserId = async (userId) => {
     try {
-      let res = await authApis().get(`/users/${userId}`);
+      let res = await Apis.get(`/users/${userId}`);
       return res.data;
     } catch {
       console.log("Có lỗi khi lấy dữ liệu tác giả");
@@ -32,7 +32,7 @@ const BookDetail = () => {
   const fetchAuthorByAuthorId = async () => {
     try {
       console.log(book.author_id);
-      let res = await authApis().get(`/authors/${book.author_id}`);
+      let res = await Apis.get(`/authors/${book.author_id}`);
       console.log(res.data);
       setAuthor(res.data);
     } catch {
@@ -42,7 +42,7 @@ const BookDetail = () => {
 
   const fetchComment = async () => {
     try {
-      let res = await authApis().get(`/books/${bookId}/comments`);
+      let res = await Apis.get(`/books/${bookId}/comments`);
       const commentData = res.data;
 
       const commentsWithUser = await Promise.all(
