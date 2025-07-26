@@ -37,7 +37,7 @@ const RegistartionForm = () => {
     formData.append("lastname", lastname);
 
     try {
-      const res = await Apis.post("/users", formData);
+      const res = await Apis.post("/users/", formData);
       if (res.data != null) {
         alert("Đăng ký thành công!!!");
         navigate("/login");
