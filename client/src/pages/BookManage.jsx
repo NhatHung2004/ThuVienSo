@@ -69,7 +69,7 @@ const BookManage = () => {
       formData.append("author", author);
       formData.append("category", selectedCategory);
 
-      const res = await Apis.post("/books", formData);
+      const res = await Apis.post("/books/", formData);
       console.log("Thêm sách thành công:", res.data);
 
       // Đóng dialog và reset form
