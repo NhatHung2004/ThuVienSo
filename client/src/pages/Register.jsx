@@ -136,9 +136,9 @@ const RegistartionForm = () => {
                 </button>
                 <p className="mt-6 text-xs text-gray-600 text-center">
                   Already have an account?{" "}
-                  <a href="/login">
+                  <Link to={"/login"}>
                     <span className="text-blue-900 font-semibold">Sign in</span>
-                  </a>
+                  </Link>
                 </p>
               </div>
             </div>
