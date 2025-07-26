@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Apis } from "../configs/Apis";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 const RegistartionForm = () => {
   const [firtname, setFirstname] = useState("");
@@ -37,13 +37,13 @@ const RegistartionForm = () => {
     formData.append("lastname", lastname);
 
     try {
-      await Apis.post("/users", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      alert("Đăng ký thành công!!!");
-      navigate("/login");
+      const res = await Apis.post("/users/", formData);
+      if (res.data != null) {
+        alert("Đăng ký thành công!!!");
+        navigate("/login");
+      } else {
+        alert("Đăng ký không thành công!!!");
+      }
     } catch (error) {
       console.log("Có lỗi xảy ra !!!", error);
     }
