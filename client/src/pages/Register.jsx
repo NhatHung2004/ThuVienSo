@@ -37,9 +37,13 @@ const RegistartionForm = () => {
     formData.append("lastname", lastname);
 
     try {
-      await Apis.post("/users", formData);
-      alert("Đăng ký thành công!!!");
-      navigate("/login");
+      const res = await Apis.post("/users", formData);
+      if (res.data != null) {
+        alert("Đăng ký thành công!!!");
+        navigate("/login");
+      } else {
+        alert("Đăng ký không thành công!!!");
+      }
     } catch (error) {
       console.log("Có lỗi xảy ra !!!", error);
     }
