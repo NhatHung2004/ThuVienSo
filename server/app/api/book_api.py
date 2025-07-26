@@ -27,6 +27,7 @@ class BooksList(Resource):
     @book_ns.expect(book_parser)
     @book_ns.marshal_with(book_model)
     @jwt_required()
+    @role_required([UserRole.LIBRARIAN.value])
     def post(self):
         """ Thêm sách mới """
         args = book_parser.parse_args()
