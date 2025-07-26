@@ -57,10 +57,12 @@ const BookDetail = () => {
       setComments([]);
     }
   };
-
   useEffect(() => {
-    fetchBookFromBookId();
-    fetchComment();
+    const fetchData = async () => {
+      await fetchBookFromBookId();
+      await fetchComment();
+    };
+    fetchData();
   }, [bookId]);
 
   useEffect(() => {
@@ -110,11 +112,11 @@ const BookDetail = () => {
           <div className="bg-white p-6 rounded-xl">
             <div className="flex flex-col md:flex-row gap-6">
               {/* Ảnh sách */}
-              <div className="flex justify-center md:justify-start">
+              <div className="w-full h-80 md:w-64 md:h-96 flex-shrink-0 flex justify-center items-center">
                 <img
                   src={book.image}
-                  alt="Oranges Are Not the Only Fruit"
-                  className="w-32 h-44 bg-gray-200 rounded-md border border-gray-300"
+                  alt={book.title}
+                  className="w-full h-full object-cover rounded-md"
                 />
               </div>
 
