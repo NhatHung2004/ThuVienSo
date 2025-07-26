@@ -31,9 +31,7 @@ const BookDetail = () => {
 
   const fetchAuthorByAuthorId = async () => {
     try {
-      console.log(book.author_id);
       let res = await Apis.get(`/authors/${book.author_id}`);
-      console.log(res.data);
       setAuthor(res.data);
     } catch {
       console.log("Có lỗi khi lấy dữ liệu tác giả");
@@ -42,6 +40,7 @@ const BookDetail = () => {
 
   const fetchComment = async () => {
     try {
+      console.log(bookId);
       let res = await Apis.get(`/books/${bookId}/comments`);
       const commentData = res.data;
 
