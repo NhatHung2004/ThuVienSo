@@ -3,13 +3,15 @@ from flask_restx import Resource
 from app.api_conf import author_ns, author_parser, author_model, get_author_parser, message_model
 from flask_jwt_extended import jwt_required
 from app.dao import dao_author
+from app.models import UserRole
+from app.utils.check_role import role_required
+
 
 @author_ns.route('/')
 class AuthorList(Resource):
     @author_ns.doc('get_author_list')
     @author_ns.expect(get_author_parser)
     @author_ns.marshal_list_with(author_model)
-    @jwt_required()
     def get(self):
         """ Lấy danh sách tác giả, theo name (query param) """
         kw = request.args.get('kw')
@@ -24,6 +26,7 @@ class AuthorList(Resource):
     @author_ns.expect(author_parser)
     @author_ns.marshal_with(author_model)
     @jwt_required()
+    @role_required([UserRole.LIBRARIAN.value])
     def post(self):
         """ Tạo tác giả """
         args = author_parser.parse_args()
