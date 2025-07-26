@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Apis } from "../configs/Apis";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 const RegistartionForm = () => {
   const [firtname, setFirstname] = useState("");
