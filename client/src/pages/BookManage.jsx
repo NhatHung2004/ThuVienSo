@@ -32,7 +32,7 @@ const BookManage = () => {
   const fetchBooks = async () => {
     setLoading(true);
     try {
-      const res = await authApis().get("/books/");
+      const res = await Apis.get("/books/");
       setBooks(res.data);
       console.log(res.data);
     } catch {
@@ -46,7 +46,7 @@ const BookManage = () => {
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const res = await authApis().get("/categories/");
+      const res = await Apis.get("/categories/");
       setCates(res.data);
       if (res.data.length > 0) setSelectedCategory(res.data[0].name);
     } catch {
