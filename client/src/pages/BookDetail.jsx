@@ -2,13 +2,15 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Book2 from "../components/layouts/Book2";
 import { useParams } from "react-router-dom";
-import { Apis, authApis } from "../configs/Apis";
+import { Apis } from "../configs/Apis";
+import { useNavigate } from "react-router-dom";
 
 const BookDetail = () => {
   const { bookId } = useParams();
   const [book, setBook] = useState(null);
   const [comments, setComments] = useState([]);
   const [author, setAuthor] = useState(null);
+  const navigate = useNavigate();
 
   const fetchBookFromBookId = async () => {
     try {
@@ -82,8 +84,8 @@ const BookDetail = () => {
   return (
     <div className="w-full min-h-screen bg-white">
       {/* Header quay lại */}
-      <Link
-        to="/books"
+      <button
+        onClick={() => navigate(-1)} // quay về 1 trang trước trong history
         className="flex flex-row items-center w-full h-16 border-b bg-white"
       >
         <svg
@@ -103,7 +105,7 @@ const BookDetail = () => {
         <h2 className="text-[#214E99] ml-3 font-semibold text-lg md:text-xl">
           Quay lại
         </h2>
-      </Link>
+      </button>
       <div className="w-full flex-col md:flex-row min-h-screen bg-white flex justify-start mb-20">
         {/* Nội dung chính */}
         <div className="max-w-5xl border rounded-2xl border-gray-200 shadow-2xl md:mt-10 w-full md:mr-10 md:ml-50 px-4 py-6">

@@ -89,6 +89,7 @@ const BookManage = () => {
     setName("");
     setDescription("");
     setImage("");
+    setPreviewUrl(null); // thêm dòng này
     setQuantity("");
     setAuthor("");
     if (cates.length > 0) setSelectedCategory(cates[0].name);
@@ -104,6 +105,7 @@ const BookManage = () => {
     if (file) {
       const imageUrl = URL.createObjectURL(file);
       setPreviewUrl(imageUrl);
+      setImage(file); // <-- thêm dòng này để lưu file ảnh
     }
   };
 
