@@ -31,6 +31,8 @@ const Login = () => {
       dispatch({ type: "login", payload: user.data });
       if (user.data.role === "UserRole.LIBRARIAN") {
         navigate("/librarian-home");
+      } else if (user.data.role === "UserRole.ADMIN") {
+        alert("Bạn không có quyền truy cập !!!");
       } else {
         navigate("/");
       }
@@ -93,10 +95,11 @@ const Login = () => {
           <p class="text-slate-600 text-sm mt-6 text-center">
             Chưa có tài khoản?{" "}
             <a
-              href="javascript:void(0);"
-              class="text-blue-600 font-medium hover:underline ml-1"
+              href="#"
+              onClick={() => navigate("/register")}
+              className="text-blue-600 font-medium hover:underline ml-1"
             >
-              Đăng ký ngany
+              Đăng ký ngay
             </a>
           </p>
         </form>

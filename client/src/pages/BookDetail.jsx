@@ -12,7 +12,7 @@ const BookDetail = () => {
 
   const fetchBookFromBookId = async () => {
     try {
-      let res = await authApis().get(`/books/${bookId}`);
+      let res = await Apis.get(`/books/${bookId}`);
       setBook(res.data); // <-- set state
     } catch (error) {
       console.log("Có lỗi ", error);
@@ -21,7 +21,7 @@ const BookDetail = () => {
 
   const fetchUserByUserId = async (userId) => {
     try {
-      let res = await authApis().get(`/users/${userId}`);
+      let res = await Apis.get(`/users/${userId}`);
       return res.data;
     } catch {
       console.log("Có lỗi khi lấy dữ liệu tác giả");
@@ -31,9 +31,7 @@ const BookDetail = () => {
 
   const fetchAuthorByAuthorId = async () => {
     try {
-      console.log(book.author_id);
-      let res = await authApis().get(`/authors/${book.author_id}`);
-      console.log(res.data);
+      let res = await Apis.get(`/authors/${book.author_id}`);
       setAuthor(res.data);
     } catch {
       console.log("Có lỗi khi lấy dữ liệu tác giả");
@@ -42,7 +40,8 @@ const BookDetail = () => {
 
   const fetchComment = async () => {
     try {
-      let res = await authApis().get(`/books/${bookId}/comments`);
+      console.log(bookId);
+      let res = await Apis.get(`/books/${bookId}/comments`);
       const commentData = res.data;
 
       const commentsWithUser = await Promise.all(
@@ -57,10 +56,12 @@ const BookDetail = () => {
       setComments([]);
     }
   };
-
   useEffect(() => {
-    fetchBookFromBookId();
-    fetchComment();
+    const fetchData = async () => {
+      await fetchBookFromBookId();
+      await fetchComment();
+    };
+    fetchData();
   }, [bookId]);
 
   useEffect(() => {
@@ -110,11 +111,11 @@ const BookDetail = () => {
           <div className="bg-white p-6 rounded-xl">
             <div className="flex flex-col md:flex-row gap-6">
               {/* Ảnh sách */}
-              <div className="flex justify-center md:justify-start">
+              <div className="w-full h-80 md:w-64 md:h-96 flex-shrink-0 flex justify-center items-center">
                 <img
                   src={book.image}
-                  alt="Oranges Are Not the Only Fruit"
-                  className="w-32 h-44 bg-gray-200 rounded-md border border-gray-300"
+                  alt={book.title}
+                  className="w-full h-full object-cover rounded-md"
                 />
               </div>
 

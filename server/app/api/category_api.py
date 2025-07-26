@@ -10,7 +10,6 @@ from app.utils.check_role import role_required
 class CategoryList(Resource):
     @category_ns.marshal_list_with(category_model)
     @category_ns.expect(get_category_parser)
-    @jwt_required()
     def get(self):
         """ Lấy danh sách thể loại, theo name (query param) """
         kw = request.args.get('kw')

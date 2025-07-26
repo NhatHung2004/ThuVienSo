@@ -20,15 +20,21 @@ import {
   FingerPrintIcon,
   SquaresPlusIcon,
   XMarkIcon,
+  Cog6ToothIcon,
+  Squares2X2Icon,
+  MoonIcon,
+  ArrowLeftOnRectangleIcon,
 } from "@heroicons/react/24/outline";
 import {
   ChevronDownIcon,
   PhoneIcon,
   PlayCircleIcon,
+  UserCircleIcon,
 } from "@heroicons/react/20/solid";
 import { Link } from "react-router-dom";
 import { MyUserContext, MyUserDispatchContext } from "../../configs/MyContext";
 import { Apis, authApis } from "../../configs/Apis";
+import { useNavigate } from "react-router-dom";
 
 const callsToAction = [
   { name: "Watch demo", href: "#", icon: PlayCircleIcon },
@@ -41,14 +47,18 @@ export default function Header() {
   const user = useContext(MyUserContext);
   const dispatch = useContext(MyUserDispatchContext);
   const [books, setBooks] = useState([]);
+  const navigate = useNavigate();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredBooks, setFilteredBooks] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [showMobileUserMenu, setShowMobileUserMenu] = useState(false);
   const fetchBooks = async () => {
     try {
       const res = await authApis().get("/books/");
       setBooks(res.data);
+      console.log(user);
     } catch {
       console.log("Có lỗi khi tải danh sách sách");
     }
@@ -176,6 +186,13 @@ export default function Header() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onFocus={() => setShowDropdown(true)}
                 onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault(); // Ngăn reload trang nếu nằm trong form
+                    navigate(`/books?q=${encodeURIComponent(searchTerm)}`);
+                    setSearchTerm("");
+                  }
+                }}
                 className="w-[550px] rounded-xl border border-gray-300 px-4 py-2 pl-10 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
 
@@ -222,20 +239,74 @@ export default function Header() {
             </div>
           </form>
         </div>
-        <div className="hidden lg:flex lg:flex-1 lg:justify-end">
+        <div className="hidden lg:flex lg:flex-1 lg:justify-end relative">
           {!user ? (
             <Link to="/login" className="text-sm/6 font-semibold text-gray-900">
               Đăng nhập <span aria-hidden="true">&rarr;</span>
             </Link>
           ) : (
-            <button
-              onClick={() => {
-                dispatch({ type: "logout" });
-              }}
-              className="text-sm/6 font-semibold text-gray-900 cursor-pointer"
-            >
-              Đăng xuất <span aria-hidden="true"></span>
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowUserDropdown((prev) => !prev)}
+                className="flex items-center gap-2 focus:outline-none"
+              >
+                <UserCircleIcon className="w-8 h-8 text-gray-700" />
+              </button>
+              {showUserDropdown && (
+                <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
+                  {/* Thông tin user */}
+                  <div className="flex items-center gap-3 px-6 py-4">
+                    <img
+                      src={user.avatar || "/default-avatar.png"} // fallback nếu user chưa có avatar
+                      alt="avatar"
+                      className="w-12 h-12 rounded-full object-cover border border-gray-300"
+                    />
+                    <div>
+                      <div className="text-gray-900 font-bold text-lg">
+                        {user.firstname + " " + user.lastname || "Tên chưa có"}
+                      </div>
+                      <div className="text-gray-500 text-sm">
+                        Username: {" " + user.username || "Chưa có"}
+                      </div>
+                    </div>
+                    {/* Badge PRO nếu cần */}
+                    {/* <span className="bg-pink-100 text-pink-700 text-xs font-bold px-2 py-1 rounded-full ml-auto">PRO</span> */}
+                  </div>
+                  <hr className="my-2 border-gray-200" />
+                  {/* Các chức năng */}
+                  <button className="flex items-center gap-3 px-6 py-3 w-full hover:bg-gray-100 text-gray-800 text-base">
+                    <Cog6ToothIcon className="w-5 h-5" />
+                    <span>Cài đặt tài khoản</span>
+                  </button>
+                  <button className="flex items-center gap-3 px-6 py-3 w-full hover:bg-gray-100 text-gray-800 text-base">
+                    <Squares2X2Icon className="w-5 h-5" />
+                    <span>Tích hợp</span>
+                  </button>
+                  <div className="flex items-center gap-3 px-6 py-3 w-full hover:bg-gray-100 text-gray-800 text-base">
+                    <MoonIcon className="w-5 h-5" />
+                    <span>Chế độ tối</span>
+                    {/* Switch dark mode nếu muốn */}
+                    <label className="ml-auto inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" />
+                      <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:bg-blue-600 transition-all"></div>
+                      <div className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full transition-all peer-checked:translate-x-4"></div>
+                    </label>
+                  </div>
+                  <hr className="my-2 border-gray-200" />
+                  {/* Đăng xuất */}
+                  <button
+                    onClick={() => {
+                      dispatch({ type: "logout" });
+                      setShowUserDropdown(false);
+                    }}
+                    className="flex items-center gap-3 px-6 py-3 w-full hover:bg-gray-100 text-red-600 text-base font-semibold"
+                  >
+                    <ArrowLeftOnRectangleIcon className="w-5 h-5" />
+                    <span>Đăng xuất</span>
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </nav>
@@ -290,13 +361,66 @@ export default function Header() {
                 </Link>
               </div>
               <div className="py-6">
-                {!user && (
+                {!user ? (
                   <Link
                     to="/login"
                     className="-mx-3 block rounded-lg px-3 py-2.5 text-base/7 font-semibold text-gray-900 hover:bg-gray-50"
                   >
                     Đăng nhập <span aria-hidden="true">&rarr;</span>
                   </Link>
+                ) : (
+                  <div className="w-full">
+                    <button
+                      onClick={() => setShowMobileUserMenu((prev) => !prev)}
+                      className="flex items-center gap-3 px-6 py-4 w-full focus:outline-none"
+                    >
+                      <UserCircleIcon className="w-12 h-12 text-blue-600" />
+                      <div className="flex flex-col text-left">
+                        <span className="text-gray-900 font-bold text-lg">
+                          {user.firstname || "Tên chưa có"}
+                        </span>
+                        <span className="text-gray-500 text-sm">
+                          {user.username || "Chưa có"}
+                        </span>
+                      </div>
+                      <span className="ml-auto text-gray-400">
+                        {showMobileUserMenu ? "▲" : "▼"}
+                      </span>
+                    </button>
+                    {showMobileUserMenu && (
+                      <div className="bg-gray-50 rounded-xl shadow border border-gray-200 mx-3 mb-2">
+                        <button className="flex items-center gap-3 px-6 py-3 w-full hover:bg-gray-100 text-gray-800 text-base">
+                          <Cog6ToothIcon className="w-5 h-5" />
+                          <span>Cài đặt tài khoản</span>
+                        </button>
+                        <button className="flex items-center gap-3 px-6 py-3 w-full hover:bg-gray-100 text-gray-800 text-base">
+                          <Squares2X2Icon className="w-5 h-5" />
+                          <span>Tích hợp</span>
+                        </button>
+                        <div className="flex items-center gap-3 px-6 py-3 w-full hover:bg-gray-100 text-gray-800 text-base">
+                          <MoonIcon className="w-5 h-5" />
+                          <span>Chế độ tối</span>
+                          <label className="ml-auto inline-flex items-center cursor-pointer">
+                            <input type="checkbox" className="sr-only peer" />
+                            <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:bg-blue-600 transition-all"></div>
+                            <div className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full transition-all peer-checked:translate-x-4"></div>
+                          </label>
+                        </div>
+                        <hr className="my-2 border-gray-200" />
+                        <button
+                          onClick={() => {
+                            dispatch({ type: "logout" });
+                            setShowMobileUserMenu(false);
+                            setMobileMenuOpen(false);
+                          }}
+                          className="flex items-center gap-3 px-6 py-3 w-full hover:bg-gray-100 text-red-600 text-base font-semibold"
+                        >
+                          <ArrowLeftOnRectangleIcon className="w-5 h-5" />
+                          <span>Đăng xuất</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

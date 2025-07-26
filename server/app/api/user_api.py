@@ -92,7 +92,7 @@ class UserRequests(Resource):
 class UserRequestsDetail(Resource):
     @user_ns.doc('get_user_request_detail')
     @user_ns.marshal_with(request_model)
-    # @jwt_required()
+    @jwt_required()
     def get(self, user_id, request_id):
         """ Lấy chi tiết request của user hiện tại """
         req = dao_user.get_detail_request(request_id, user_id)

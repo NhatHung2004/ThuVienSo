@@ -7,7 +7,6 @@ from app.dao import dao_comment
 class CommentsList(Resource):
     @comment_ns.doc('get_comments')
     @comment_ns.marshal_list_with(comment_model)
-    @jwt_required()
     def get(self):
         """ Danh sách toàn bộ bình luận """
         comments = dao_comment.get_comments_list()
