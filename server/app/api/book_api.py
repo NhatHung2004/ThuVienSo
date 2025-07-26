@@ -12,7 +12,7 @@ from app.utils.check_role import role_required
 class BooksList(Resource):
     @book_ns.doc('get_book_list')
     @book_ns.marshal_list_with(book_model)
-    @jwt_required()
+
     def get(self):
         """Lấy danh sách tất cả sách"""
         kw = request.args.get('kw')
