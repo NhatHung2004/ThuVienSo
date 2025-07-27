@@ -4,6 +4,8 @@ import Book from "../components/layouts/Book";
 import LoginRequire from "../components/layouts/LoginRequire";
 import { useNavigate, Link } from "react-router-dom";
 import { MyUserContext } from "../configs/MyContext";
+import bookIcon1 from "../assets/book.svg";
+import bookIcon2 from "../assets/book-2.svg";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -61,7 +63,7 @@ const Home = () => {
                   className="inline-block w-fit h-fit md:flex md:items-center md:justify-center rounded-lg md:ml-10 flex-col mt-10 md:mt-0 md:w-20 md:h-20"
                 >
                   <img
-                    src="../../public/book-2.svg"
+                    src={bookIcon2}
                     alt="Khám phá sách"
                     style={{ filter: "invert(100%) brightness(200%)" }}
                     className="w-15 h-15 object-cover rounded-lg shadow-lg "
@@ -81,10 +83,10 @@ const Home = () => {
                   className="inline-block w-fit h-fit md:flex md:items-center md:justify-center rounded-lg md:ml-20  flex-col mt-10 md:mt-0 md:w-20 md:h-20"
                 >
                   <img
-                    src="../../public/book.svg"
+                    src={bookIcon1}
                     alt="Khám phá sách"
                     style={{ filter: "invert(100%) brightness(200%)" }}
-                    className="w-15 h-15 object-cover rounded-lg shadow-lg "
+                    className="w-15 h-15 object-cover rounded-lg shadow-lg"
                   />
                 </div>
                 <p className="md:ml-20 md:text-start  font-bold text-10sm mt-5 text-lg">

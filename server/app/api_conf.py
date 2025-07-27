@@ -1,7 +1,6 @@
 from flask import Blueprint
 from flask_restx import Api, fields, reqparse
 from flask_jwt_extended.exceptions import NoAuthorizationError
-from werkzeug.exceptions import NotFound
 from werkzeug.datastructures import FileStorage
 
 # Tạo một Blueprint cho API. Blueprint này sẽ được đăng ký với ứng dụng Flask chính.
@@ -27,6 +26,7 @@ book_ns = api.namespace('books', description='Các thao tác liên quan đến s
 comment_ns = api.namespace('comments', description='Các thao tác liên quan đến bình luận sách')
 author_ns = api.namespace('authors', description='Các thao tác liên quan đến tác giả')
 request_ns = api.namespace('requests', description='Các thao tác liên quan đến mượn trả sách')
+stats_ns = api.namespace('stats', description='Các thao tác liên quan đến thống kê')
 
 @api.errorhandler(NoAuthorizationError)
 def handle_no_authorization_error(error):
@@ -86,6 +86,13 @@ request_model = api.model('Request', {
     'return_date': fields.DateTime(required=True, description='Ngày trả sách'),
     'user_id': fields.Integer(required=True, description='ID người mượn'),
     'librarian_id': fields.Integer(required=True, description='ID thủ thư duyệt'),
+})
+
+book_frequency_statistics_model = api.model('BookFrequencyStatistics', {
+    'book_id': fields.Integer(readOnly=True),
+    'book_title': fields.String(required=True),
+    'total_borrow_quantity': fields.Integer(readOnly=True),
+    'number_of_borrows': fields.Integer(readOnly=True),
 })
 
 # --- Định nghĩa Parsers cho Swagger UI ---
@@ -168,3 +175,7 @@ decline_request_parser.add_argument('librarian_id', type=int, required=True, hel
 ''' Get request '''
 get_request_parser = reqparse.RequestParser()
 get_request_parser.add_argument('status', type=str, location='args', help='Trạng thái yêu cầu')
+
+''' Book frequency '''
+book_frequency_statistics_parser = reqparse.RequestParser()
+book_frequency_statistics_parser.add_argument('month', type=int, help='Tháng')
