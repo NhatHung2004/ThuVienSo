@@ -34,6 +34,7 @@ class User(db.Model, UserMixin):
     requests = relationship("Request", backref="user", foreign_keys="Request.user_id", lazy=True)
     approved_requests = relationship("Request", backref="librarian", foreign_keys="Request.librarian_id", lazy=True)
     comments = relationship("Comment", backref="user", cascade="all, delete-orphan", lazy=True)
+    carts = relationship("Cart", backref="user", cascade="all, delete-orphan", lazy=True)
 
     def __str__(self):
         return self.username
@@ -54,6 +55,7 @@ class Book(db.Model):
 
     request_details = relationship("RequestDetail", backref="book", cascade="all, delete-orphan", lazy=True)
     comments = relationship("Comment", backref="book", cascade="all, delete-orphan", lazy=True)
+    cart_details = relationship('CartDetail', backref='book', cascade='all, delete-orphan', lazy=True)
 
     def __str__(self):
         return self.title
@@ -107,3 +109,16 @@ class Comment(db.Model):
 
     class Meta:
         ordering = ['-id']
+
+class Cart(db.Model):
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    created_date = Column(DateTime, default=datetime.now(ZoneInfo("Asia/Ho_Chi_Minh")), nullable=False)
+
+    user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
+    cart_details = relationship('CartDetail', backref='cart', cascade='all, delete-orphan', lazy=True)
+
+class CartDetail(db.Model):
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    book_id = Column(Integer, ForeignKey('book.id'), nullable=False)
+    cart_id = Column(Integer, ForeignKey('cart.id'), nullable=False)
+    quantity = Column(Integer, nullable=False, default=0)
