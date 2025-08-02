@@ -1,16 +1,22 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { Link } from "react-router-dom";
 import Book2 from "../components/layouts/Book2";
 import { useParams } from "react-router-dom";
-import { Apis } from "../configs/Apis";
+import { Apis, authApis } from "../configs/Apis";
 import { useNavigate } from "react-router-dom";
+import { MyUserContext } from "../configs/MyContext";
 
 const BookDetail = () => {
   const { bookId } = useParams();
   const [book, setBook] = useState(null);
   const [comments, setComments] = useState([]);
   const [author, setAuthor] = useState(null);
+  const user = useContext(MyUserContext);
   const navigate = useNavigate();
+
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewContent, setReviewContent] = useState("");
 
   const fetchBookFromBookId = async () => {
     try {
@@ -58,6 +64,41 @@ const BookDetail = () => {
       setComments([]);
     }
   };
+
+  const addComment = async () => {
+    if (user === null) {
+      alert("Bạn cần đăng nhập để có thể để lại bình luận!!!");
+      return;
+    }
+
+    if (reviewRating === 0 || reviewContent.trim() === "") {
+      alert("Vui lòng nhập đánh giá và nội dung trước khi gửi.");
+      return;
+    }
+    try {
+      const res = authApis().post(
+        `/books/${bookId}/comments/`,
+        {},
+        {
+          params: {
+            content: reviewContent,
+            user_id: user.id,
+            rating: reviewRating,
+          },
+        }
+      );
+      if (res != null) {
+        console.log("Đã thêm bình luận thành công !!!");
+        await fetchComment();
+      } else {
+        console.log("Thêm bình luận thất bại !!!");
+      }
+    } catch (err) {
+      console.log("Đã có lỗi xảy ra " + err);
+      alert("Thêm bình luận thất bại !!!");
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       await fetchBookFromBookId();
@@ -204,11 +245,63 @@ const BookDetail = () => {
           {/* Đánh giá */}
           <div className="mt-8 bg-white p-6 rounded-xl border border-gray-200">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-gray-800">Đánh giá (4)</h3>
-              <button className="bg-[#214E99] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#1a3f7c]">
-                Thêm đánh giá
-              </button>
+              <h3 className="text-xl font-bold text-gray-800">
+                Đánh giá ({comments.length})
+              </h3>
+              {!showReviewForm ? (
+                <button
+                  onClick={() => setShowReviewForm(true)}
+                  className="bg-[#214E99] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#1a3f7c]"
+                >
+                  Thêm đánh giá
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowReviewForm(false)}
+                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-400"
+                >
+                  Hủy
+                </button>
+              )}
             </div>
+
+            {showReviewForm && (
+              <div className="mb-6 p-4 rounded-xl bg-[#F1EFFF] shadow">
+                <h4 className="font-semibold mb-5">Chia sẻ đánh giá của bạn</h4>
+                <div className="flex items-center mb-4">
+                  <span className="mr-2">Đánh giá*:</span>
+                  {[...Array(5)].map((_, idx) => (
+                    <svg
+                      key={idx}
+                      onClick={() => setReviewRating(idx + 1)}
+                      className={`w-6 h-6 cursor-pointer ${
+                        idx < reviewRating ? "text-yellow-400" : "text-gray-300"
+                      }`}
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                  <span className="ml-2 text-sm">{reviewRating}/5 sao</span>
+                </div>
+                <div className="mb-2">
+                  <textarea
+                    className="w-full border rounded p-2 text-sm"
+                    rows={3}
+                    placeholder="Chia sẻ cảm nhận của bạn về cuốn sách....."
+                    value={reviewContent}
+                    onChange={(e) => setReviewContent(e.target.value)}
+                  />
+                </div>
+                <button
+                  onClick={addComment}
+                  className="bg-[#214E99] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#1a3f7c]"
+                >
+                  Thêm đánh giá
+                </button>
+              </div>
+            )}
 
             {comments.length > 0 ? (
               comments.map((cmt) => (

@@ -27,7 +27,7 @@ const Login = () => {
       let res = await Apis.post("/auth/login", data);
       console.log(res.data.access_token);
       cookie.save("token", res.data.access_token);
-      let user = await authApis().get(`/users/${res.data.user_id}`);
+      let user = await Apis.get(`/users/${res.data.user_id}`);
       dispatch({ type: "login", payload: user.data });
       if (user.data.role === "UserRole.LIBRARIAN") {
         navigate("/librarian-home");
