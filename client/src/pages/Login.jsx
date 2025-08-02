@@ -1,6 +1,6 @@
 import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import { authApis, Apis } from "../configs/Apis";
+import { Apis } from "../configs/Apis";
 import cookie from "react-cookies";
 import { MyUserDispatchContext } from "../configs/MyContext";
 
@@ -37,6 +37,7 @@ const Login = () => {
         navigate("/");
       }
     } catch {
+      alert("Sai thông tin đăng nhập !!!");
       console.log("Có lỗi xảy ra!!!");
     }
   };

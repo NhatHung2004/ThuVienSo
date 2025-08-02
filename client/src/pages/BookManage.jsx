@@ -59,7 +59,6 @@ const BookManage = () => {
 
   const addBook = async () => {
     try {
-      console.log(selectedCategory);
       setLoading(true);
       const formData = new FormData();
       formData.append("title", name);
@@ -70,7 +69,7 @@ const BookManage = () => {
       formData.append("category", selectedCategory);
 
       const res = await authApis().post("/books/", formData);
-      console.log("Thêm sách thành công:", res.data);
+      alert("Thêm sách thành công:", res.data);
 
       // Đóng dialog và reset form
       setOpenDialog(false);
