@@ -52,6 +52,43 @@ const Cart = () => {
       console.log(err);
     }
   };
+
+  const sendRequest = async () => {
+    try {
+      const selectedBooksData = books
+        .filter((item) => selectedItems.has(item.id))
+        .map((item) => ({
+          book_id: item.id,
+          quantity: item.quantity,
+        }));
+      if (selectedBooksData.length === 0) {
+        alert("Bạn chưa chọn cuốn nào cả!");
+        return;
+      }
+
+      const payload = {
+        user_id: user.id,
+        books: selectedBooksData,
+      };
+
+      // Gửi request mượn sách
+      const res = await authApis().post("/requests/", payload);
+      console.log("Request thành công: ", res.data);
+
+      // (Tuỳ chọn) Xoá sách khỏi giỏ hàng sau khi mượn
+      for (const book of selectedBooksData) {
+        await authApis().patch(`/carts/`, {
+          cart_id: cart.cart_id,
+          book_id: book.book_id,
+          quantity: book.quantity,
+        });
+      }
+      alert("Mượn sách thành công!");
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   useEffect(() => {
     fetchCart();
   }, []);
@@ -420,6 +457,7 @@ const Cart = () => {
 
                 <div className="pt-4">
                   <button
+                    onClick={sendRequest}
                     disabled={selectedBooks === 0}
                     className={`w-full py-4 px-6 rounded-xl font-semibold text-white transition-all duration-300 ${
                       selectedBooks > 0

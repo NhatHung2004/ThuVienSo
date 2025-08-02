@@ -65,6 +65,20 @@ const BookDetail = () => {
     }
   };
 
+  const addCart = async () => {
+    try {
+      const res = await authApis().post("/carts/", {
+        user_id: user.id,
+        book_id: bookId,
+        quantity: 1,
+      });
+      console.log(res.data);
+      alert("Đã thêm vào giỏ hàng");
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   const addComment = async () => {
     if (user === null) {
       alert("Bạn cần đăng nhập để có thể để lại bình luận!!!");
@@ -211,7 +225,10 @@ const BookDetail = () => {
 
                       {/* Action Buttons */}
                       <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                        <button className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl">
+                        <button
+                          onClick={addCart}
+                          className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+                        >
                           <svg
                             className="w-5 h-5 inline mr-2"
                             fill="none"
