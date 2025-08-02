@@ -27,6 +27,7 @@ comment_ns = api.namespace('comments', description='Các thao tác liên quan đ
 author_ns = api.namespace('authors', description='Các thao tác liên quan đến tác giả')
 request_ns = api.namespace('requests', description='Các thao tác liên quan đến mượn trả sách')
 stats_ns = api.namespace('stats', description='Các thao tác liên quan đến thống kê')
+cart_ns = api.namespace('carts', description='Các thao tác liên quan đến giỏ hàng')
 
 @api.errorhandler(NoAuthorizationError)
 def handle_no_authorization_error(error):
@@ -93,6 +94,19 @@ book_frequency_statistics_model = api.model('BookFrequencyStatistics', {
     'book_title': fields.String(required=True),
     'total_borrow_quantity': fields.Integer(readOnly=True),
     'number_of_borrows': fields.Integer(readOnly=True),
+})
+
+cart_model = api.model('Cart', {
+    'id': fields.Integer(readOnly=True),
+    'created_date': fields.DateTime(required=True),
+    'user_id': fields.Integer(readOnly=True),
+})
+
+cart_detail_model = api.model('CartDetail', {
+    'id': fields.Integer(readOnly=True),
+    'book_id': fields.Integer(readOnly=True),
+    'cart_id': fields.Integer(required=True),
+    'quantity': fields.Integer(readOnly=True),
 })
 
 # --- Định nghĩa Parsers cho Swagger UI ---
@@ -179,3 +193,15 @@ get_request_parser.add_argument('status', type=str, location='args', help='Trạ
 ''' Book frequency '''
 book_frequency_statistics_parser = reqparse.RequestParser()
 book_frequency_statistics_parser.add_argument('month', type=int, help='Tháng')
+
+''' Create cart '''
+create_cart_parser = reqparse.RequestParser()
+create_cart_parser.add_argument('user_id', type=int, help='Id của người dùng hiện tại')
+create_cart_parser.add_argument('book_id', type=int, help='Id của sách cần mượn')
+create_cart_parser.add_argument('quantity', type=int, help='Số lượng sách mượn')
+
+''' Update cart detail '''
+update_cart_detail_parser = reqparse.RequestParser()
+update_cart_detail_parser.add_argument('cart_id', type=int, help='Id của giỏ hàng')
+update_cart_detail_parser.add_argument('book_id', type=int, help='Id của sách cần mượn')
+update_cart_detail_parser.add_argument('quantity', type=int, help='Số lượng sách giảm')
