@@ -32,7 +32,7 @@ const BookManage = () => {
   const fetchBooks = async () => {
     setLoading(true);
     try {
-      const res = await authApis().get("/books/");
+      const res = await Apis.get("/books/");
       setBooks(res.data);
       console.log(res.data);
     } catch {
@@ -46,7 +46,7 @@ const BookManage = () => {
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const res = await authApis().get("/categories/");
+      const res = await Apis.get("/categories/");
       setCates(res.data);
       if (res.data.length > 0) setSelectedCategory(res.data[0].name);
     } catch {
@@ -59,7 +59,6 @@ const BookManage = () => {
 
   const addBook = async () => {
     try {
-      console.log(selectedCategory);
       setLoading(true);
       const formData = new FormData();
       formData.append("title", name);
@@ -69,8 +68,8 @@ const BookManage = () => {
       formData.append("author", author);
       formData.append("category", selectedCategory);
 
-      const res = await Apis.post("/books", formData);
-      console.log("Thêm sách thành công:", res.data);
+      const res = await authApis().post("/books/", formData);
+      alert("Thêm sách thành công:", res.data);
 
       // Đóng dialog và reset form
       setOpenDialog(false);
@@ -89,6 +88,7 @@ const BookManage = () => {
     setName("");
     setDescription("");
     setImage("");
+    setPreviewUrl(null); // thêm dòng này
     setQuantity("");
     setAuthor("");
     if (cates.length > 0) setSelectedCategory(cates[0].name);
@@ -104,6 +104,7 @@ const BookManage = () => {
     if (file) {
       const imageUrl = URL.createObjectURL(file);
       setPreviewUrl(imageUrl);
+      setImage(file); // <-- thêm dòng này để lưu file ảnh
     }
   };
 
