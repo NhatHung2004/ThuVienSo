@@ -42,7 +42,6 @@ class AuthorList(Resource):
 class AuthorDetail(Resource):
     @author_ns.doc('get_author_detail')
     @author_ns.marshal_with(author_model)
-    @jwt_required()
     def get(self, author_id):
         """ Lấy tác giả theo ID """
         author = dao_author.get_author_by_id(author_id)

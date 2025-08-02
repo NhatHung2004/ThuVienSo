@@ -51,7 +51,6 @@ class UserList(Resource):
 class User(Resource):
     @user_ns.doc('get_user')
     @user_ns.marshal_with(user_model)
-    @jwt_required()
     def get(self, user_id):
         '''Lấy thông tin một người dùng theo ID'''
         user = dao_user.get_user_by_id(user_id)
