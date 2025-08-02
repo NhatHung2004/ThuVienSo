@@ -21,6 +21,6 @@ class Login(Resource):
         access_token = create_access_token(identity=str(user.id), additional_claims={"role": user.role.value})
         refresh_token = create_refresh_token(identity=str(user.id))
 
-        return jsonify({"user_id": user.id, "access_token": access_token, "refresh_token": refresh_token}), 200
+        return jsonify({"user_id": user.id, "access_token": access_token, "refresh_token": refresh_token})
 
 auth_ns.add_resource(Login, "/login")
