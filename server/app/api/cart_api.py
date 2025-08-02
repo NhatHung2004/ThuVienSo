@@ -7,7 +7,7 @@ from app.dao import dao_cart
 class Cart(Resource):
     @cart_ns.expect(create_cart_parser)
     @cart_ns.marshal_with(cart_model)
-    @jwt_required()
+    # @jwt_required()
     def post(self):
         """ Thêm mới hoặc tăng số lượng sách """
         args = create_cart_parser.parse_args()
@@ -36,7 +36,7 @@ class Cart(Resource):
 
 @cart_ns.route('/<int:cart_id>')
 class CartDetail(Resource):
-    # @jwt_required()
+    @jwt_required()
     def delete(self, cart_id):
         """ Xoá giỏ hàng """
         deleted = dao_cart.delete_cart(cart_id)
