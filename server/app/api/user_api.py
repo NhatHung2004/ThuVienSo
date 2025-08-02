@@ -1,5 +1,5 @@
 from flask import request
-from app.dao import dao_user
+from app.dao import dao_user, dao_cart
 from flask_restx import Resource
 from app.api_conf import user_ns, user_model, user_creation_parser, message_model, user_parser, request_model
 from flask_jwt_extended import jwt_required
@@ -98,7 +98,20 @@ class UserRequestsDetail(Resource):
 
         return (req, 200) if req else 404
 
+@user_ns.route('/<int:user_id>/cart')
+class UserCartDetail(Resource):
+    @jwt_required()
+    def get(self, user_id):
+        """ Lấy giỏ hang của người dùng hiện tại """
+        res = dao_cart.get_cart_by_user_id(user_id)
+
+        if res['cart_id'] is None:
+            return res, 404
+        else:
+            return res, 200
+
 user_ns.add_resource(UserList, '/')
 user_ns.add_resource(User, '/<int:user_id>')
 user_ns.add_resource(UserRequests, '/<int:user_id>/requests')
 user_ns.add_resource(UserRequestsDetail, '/<int:user_id>/requests/<int:request_id>')
+user_ns.add_resource(UserCartDetail, '/<int:user_id>/cart')

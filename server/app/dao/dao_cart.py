@@ -1,6 +1,36 @@
 from app.models import Cart, CartDetail
 from app import db
 
+def get_cart_by_user_id(user_id):
+    cart = Cart.query.filter_by(user_id=user_id).first()
+
+    if not cart:
+        return {
+            "cart_id": None,
+            "items": [],
+            "message": "Cart not found for this user."
+        }
+
+    cart_detail = CartDetail.query.filter_by(cart_id=cart.id).all()
+
+    if cart_detail:
+        items_list = []
+        for item in cart_detail:
+            items_list.append({
+                "book_id": item.book_id,
+                "quantity": item.quantity,
+            })
+
+        return {
+            "cart_id": cart.id,
+            "items": items_list,
+        }
+
+    return {
+        "cart_id": None,
+        "items": [],
+    }
+
 def create_or_increase_cart(user_id, quantity, book_id):
     cart = Cart.query.filter_by(user_id=user_id).first()
 
