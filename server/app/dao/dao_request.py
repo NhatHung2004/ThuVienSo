@@ -4,15 +4,68 @@ from app.models import Request, RequestDetail, StatusCheck, Book
 from app import db
 
 def get_request_list(status=None):
-    reqs = Request.query
+    query = Request.query.options(
+        db.joinedload(Request.request_details).joinedload(RequestDetail.book),
+    )
 
     if status:
-        reqs = reqs.filter_by(status=status)
+        query = query.filter(Request.status == status)
 
-    return reqs.all() or None
+    requests = query.all()
+
+    requests_data = []
+    for req in requests:
+        book_list = []
+        for detail in req.request_details:
+            book_list.append({
+                'book_id': detail.book.id,
+                'quantity': detail.quantity,
+            })
+
+        requests_data.append({
+            'id': req.id,
+            'status': req.status.value,
+            'request_date': req.request_date.isoformat(),
+            'return_date': req.return_date.isoformat() if req.return_date else None,
+            'user_id': req.user_id,
+            'librarian_id': req.librarian_id,
+            'books': book_list,
+        })
+    return requests_data
 
 def get_request_by_id(request_id):
     return Request.query.get(request_id)
+
+
+
+def get_request_by_user_id(user_id):
+    request = Request.query.filter_by(user_id=user_id).first()
+
+    if request:
+        request_detail = RequestDetail.query.filter_by(request_id=request.id).all()
+
+        if request_detail:
+            books_data = []
+            for req in request_detail:
+                books_data.append({
+                    "book_id": req.book_id,
+                    "quantity": req.quantity,
+                })
+
+            return {
+                "user_id": user_id,
+                "request_id": request.id,
+                "books": books_data,
+                "request_date": request.request_date.isoformat(),
+                "return_date": request.return_date.isoformat(),
+                "status": request.status.value,
+                "librarian_id": request.librarian_id,
+            }
+
+    return {
+        "request_id": None,
+        "message": "Request not found",
+    }
 
 def request_to_borrow_books(user_id, books):
     request = Request(user_id=user_id)
