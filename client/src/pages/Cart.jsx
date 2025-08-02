@@ -1,36 +1,64 @@
-import React, { useState } from "react";
-
-const cartItems = [
-  {
-    id: 1,
-    title: "Dế Mèn phiêu lưu ký",
-    author: "Tô Hoài",
-    date: "11/2/2025",
-    category: "Văn học thiếu nhi",
-    image:
-      "https://thanhnien.mediacdn.vn/Uploaded/minhnguyet/2022_05_08/bia-sach2-9886.jpg",
-    quantity: 1,
-  },
-  {
-    id: 2,
-    title: "Những cuộc phiêu lưu của Tom Sawyer",
-    author: "Mark Twain",
-    date: "10/2/2025",
-    category: "Văn học nước ngoài",
-    image:
-      "https://thanhnien.mediacdn.vn/Uploaded/minhnguyet/2022_05_08/bia-sach2-9886.jpg",
-    quantity: 2,
-  },
-];
+import React, { useState, useContext, useEffect } from "react";
+import { authApis, Apis } from "../configs/Apis";
+import { MyUserContext } from "../configs/MyContext";
 
 const Cart = () => {
-  const [items, setItems] = useState(cartItems);
   const [selectedItems, setSelectedItems] = useState(new Set());
+  const user = useContext(MyUserContext);
   const [selectAll, setSelectAll] = useState(false);
+  const [cart, setCart] = useState([]);
+  const [books, setbooks] = useState([]);
+
+  const fetchBookByBookId = async (bookId) => {
+    try {
+      const res = await authApis().get(`/books/${bookId}`);
+      return res.data;
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const fetchAuthorByAuthorId = async (author_id) => {
+    try {
+      let res = await Apis.get(`/authors/${author_id}`);
+      return res.data;
+    } catch {
+      console.log("Có lỗi khi lấy dữ liệu tác giả");
+    }
+  };
+
+  const fetchCart = async () => {
+    try {
+      const res = await authApis().get(`/users/${user.id}/cart`);
+      setCart(res.data);
+      const booksData = await Promise.all(
+        res.data.items.map(async (item) => {
+          const book = await fetchBookByBookId(item.book_id);
+          const author = await fetchAuthorByAuthorId(book.author_id);
+          return {
+            id: book.id,
+            title: book.title,
+            author: author.name || "Không rõ",
+            date: new Date().toLocaleDateString(),
+            category: book.category_id || "Chưa phân loại",
+            image: book.image,
+            quantity: item.quantity,
+          };
+        })
+      );
+      console.log(booksData);
+      setbooks(booksData);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+  useEffect(() => {
+    fetchCart();
+  }, []);
 
   const handleQuantityChange = (id, change) => {
-    setItems(
-      items.map((item) =>
+    setbooks(
+      books.map((item) =>
         item.id === id
           ? { ...item, quantity: Math.max(1, item.quantity + change) }
           : item
@@ -38,14 +66,14 @@ const Cart = () => {
     );
   };
 
-  const handleRemoveItem = (id) => {
-    setItems(items.filter((item) => item.id !== id));
-    setSelectedItems((prev) => {
-      const newSet = new Set(prev);
-      newSet.delete(id);
-      return newSet;
-    });
-  };
+  // const handleRemoveItem = (id) => {
+  //   setItems(items.filter((item) => item.id !== id));
+  //   setSelectedItems((prev) => {
+  //     const newSet = new Set(prev);
+  //     newSet.delete(id);
+  //     return newSet;
+  //   });
+  // };
 
   const handleSelectItem = (id) => {
     setSelectedItems((prev) => {
@@ -63,13 +91,13 @@ const Cart = () => {
     if (selectAll) {
       setSelectedItems(new Set());
     } else {
-      setSelectedItems(new Set(items.map((item) => item.id)));
+      setSelectedItems(new Set(books.map((item) => item.id)));
     }
     setSelectAll(!selectAll);
   };
 
-  const totalBooks = items.reduce((sum, item) => sum + item.quantity, 0);
-  const selectedBooks = items
+  const totalBooks = books.reduce((sum, item) => sum + item.quantity, 0);
+  const selectedBooks = books
     .filter((item) => selectedItems.has(item.id))
     .reduce((sum, item) => sum + item.quantity, 0);
 
@@ -146,14 +174,14 @@ const Cart = () => {
                   </div>
                 </div>
                 <span className="ml-3 font-semibold text-gray-800 group-hover:text-blue-600 transition-colors">
-                  Chọn tất cả sách ({items.length})
+                  Chọn tất cả sách ({books.length})
                 </span>
               </label>
             </div>
 
             {/* Cart Items */}
             <div className="space-y-4">
-              {items.map((item) => (
+              {books.map((item) => (
                 <div
                   key={item.id}
                   className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
@@ -337,7 +365,7 @@ const Cart = () => {
               ))}
             </div>
 
-            {items.length === 0 && (
+            {books.length === 0 && (
               <div className="text-center py-12">
                 <svg
                   className="w-16 h-16 mx-auto text-gray-400 mb-4"
