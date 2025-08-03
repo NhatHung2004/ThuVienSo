@@ -53,8 +53,8 @@ class RequestList(Resource):
 class RequestAccepted(Resource):
     @request_ns.marshal_with(request_model)
     @request_ns.expect(accepted_request_parser)
-    @jwt_required()
-    @role_required([UserRole.LIBRARIAN.value])
+    # @jwt_required()
+    # @role_required([UserRole.LIBRARIAN.value])
     def patch(self, request_id):
         """ Chấp nhận yêu cầu """
         args = accepted_request_parser.parse_args()
