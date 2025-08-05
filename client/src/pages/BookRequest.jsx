@@ -19,7 +19,7 @@ import {
   XCircle,
   AlertCircle,
 } from "lucide-react";
-import Sidebar, { SidebarItem } from "../components/layouts/sidebar";
+import Sidebar, { SidebarItem } from "../components/layouts/Sidebar";
 import { Apis, authApis } from "../configs/Apis";
 import { useNavigate } from "react-router-dom";
 import { MyUserContext } from "../configs/MyContext";
