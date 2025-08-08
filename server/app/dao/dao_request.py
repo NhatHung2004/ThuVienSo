@@ -57,7 +57,7 @@ def get_request_by_user_id(user_id):
                 "request_id": request.id,
                 "books": books_data,
                 "request_date": request.request_date.isoformat(),
-                "return_date": request.return_date.isoformat(),
+                "return_date": request.return_date.isoformat() if request.return_date else None,
                 "status": request.status.value,
                 "librarian_id": request.librarian_id,
             }
