@@ -11,6 +11,7 @@ Client (Frontend):
 - Quản lý state: Tương tác với API backend thông qua Axios
 - Cookies: Quản lý cookies với react-cookies và react-use-cookie
 - Điều hướng: Sử dụng React Router DOM để quản lý các route trong ứng dụng
+
 Server (Backend):
 - Framework: Flask
 - RESTful API: Xây dựng API mạnh mẽ với Flask-RestX
