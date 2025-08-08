@@ -1,7 +1,7 @@
 from flask import request
-from app.dao import dao_user
+from app.dao import dao_user, dao_cart, dao_request
 from flask_restx import Resource
-from app.api_conf import user_ns, user_model, user_creation_parser, message_model, user_parser, request_model
+from app.api_conf import user_ns, user_model, user_creation_parser, message_model, user_parser
 from flask_jwt_extended import jwt_required
 from cloudinary import uploader
 from app.models import UserRole
@@ -51,7 +51,6 @@ class UserList(Resource):
 class User(Resource):
     @user_ns.doc('get_user')
     @user_ns.marshal_with(user_model)
-    @jwt_required()
     def get(self, user_id):
         '''Lấy thông tin một người dùng theo ID'''
         user = dao_user.get_user_by_id(user_id)
@@ -79,27 +78,29 @@ class User(Resource):
 
 @user_ns.route('/<int:user_id>/requests')
 class UserRequests(Resource):
-    @user_ns.doc('get_user_requests')
-    @user_ns.marshal_list_with(request_model)
     @jwt_required()
     def get(self, user_id):
-        """ Lịch sử yêu cầu """
-        reqs = dao_user.get_request_by_user_id(user_id)
+        """ Lấy request theo userId """
+        res = dao_request.get_request_by_user_id(user_id)
 
-        return (reqs, 200) if reqs else ('', 404)
+        if res["request_id"] is not None:
+            return res, 200
 
-@user_ns.route('/<int:user_id>/requests/<int:request_id>')
-class UserRequestsDetail(Resource):
-    @user_ns.doc('get_user_request_detail')
-    @user_ns.marshal_with(request_model)
+        return res, 404
+
+@user_ns.route('/<int:user_id>/cart')
+class UserCartDetail(Resource):
     @jwt_required()
-    def get(self, user_id, request_id):
-        """ Lấy chi tiết request của user hiện tại """
-        req = dao_user.get_detail_request(request_id, user_id)
+    def get(self, user_id):
+        """ Lấy giỏ hàng của người dùng hiện tại """
+        res = dao_cart.get_cart_by_user_id(user_id)
 
-        return (req, 200) if req else 404
+        if res['cart_id'] is None:
+            return res, 404
+        else:
+            return res, 200
 
 user_ns.add_resource(UserList, '/')
 user_ns.add_resource(User, '/<int:user_id>')
 user_ns.add_resource(UserRequests, '/<int:user_id>/requests')
-user_ns.add_resource(UserRequestsDetail, '/<int:user_id>/requests/<int:request_id>')
+user_ns.add_resource(UserCartDetail, '/<int:user_id>/cart')

@@ -8,9 +8,9 @@ from datetime import datetime
 from app.models import UserRole
 from app.utils.check_role import role_required
 
+
 @request_ns.route('/')
 class Requests(Resource):
-    @request_ns.marshal_list_with(request_model)
     @request_ns.expect(get_request_parser)
     @jwt_required()
     @role_required([UserRole.LIBRARIAN.value])
