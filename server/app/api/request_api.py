@@ -41,8 +41,9 @@ class Requests(Resource):
         ward = data.get('ward')
         province = data.get('province')
         city = data.get('city')
+        number_of_requests_day = data.get('number_of_requests_day')
 
-        req = dao_request.request_to_borrow_books(user_id, books, borrowing_method,
+        req = dao_request.request_to_borrow_books(user_id, books, borrowing_method, number_of_requests_day,
                                                   purpose, name, phone, cccd, job, address, ward, province, city)
 
         return (req, 201) if req else ('', 500)

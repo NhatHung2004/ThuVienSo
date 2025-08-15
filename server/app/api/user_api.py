@@ -78,7 +78,7 @@ class User(Resource):
 
 @user_ns.route('/<int:user_id>/requests')
 class UserRequests(Resource):
-    @jwt_required()
+    # @jwt_required()
     def get(self, user_id):
         """ Lấy request theo userId """
         res = dao_request.get_request_by_user_id(user_id)

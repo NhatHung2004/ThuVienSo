@@ -61,6 +61,17 @@ def get_request_by_user_id(user_id):
                     "return_date": req.return_date.isoformat() if req.return_date else None,
                     "status": req.status.value,
                     "librarian_id": req.librarian_id,
+                    "number_of_requests_day": req.number_of_requests_day,
+                    "borrowing_method": req.borrowing_method.value,
+                    "purpose": req.purpose if req.purpose else None,
+                    "name": req.name if req.name else None,
+                    "phone": req.phone if req.phone else None,
+                    "cccd": req.cccd if req.cccd else None,
+                    "job": req.job if req.job else None,
+                    "address": req.address if req.address else None,
+                    "ward": req.ward if req.ward else None,
+                    "province": req.province if req.province else None,
+                    "city": req.city if req.city else None,
                 })
 
         return response
@@ -70,10 +81,11 @@ def get_request_by_user_id(user_id):
         "message": "Request not found",
     }
 
-def request_to_borrow_books(user_id, books, borrowing_method,
+def request_to_borrow_books(user_id, books, borrowing_method, number_of_requests_day,
                                                   purpose, name, phone, cccd, job, address, ward, province, city):
     request = Request(user_id=user_id, borrowing_method=borrowing_method, purpose=purpose, name=name,
-                      phone=phone, cccd=cccd, job=job, address=address, ward=ward, province=province, city=city)
+                      phone=phone, cccd=cccd, job=job, address=address, ward=ward, province=province, city=city,
+                      number_of_requests_day = number_of_requests_day)
 
     db.session.add(request)
     db.session.flush()  # Lấy borrow_request.id mà không cần commit
