@@ -116,7 +116,7 @@ class Request(db.Model):
 class RequestDetail(db.Model):
     id = Column(Integer, primary_key=True, autoincrement=True)
     request_id = Column(Integer, ForeignKey('request.id', ondelete='CASCADE'), nullable=False)
-    book_id = Column(Integer, ForeignKey('book.id'), nullable=False)
+    book_id = Column(Integer, ForeignKey('book.id', ondelete='CASCADE'), nullable=False)
     quantity = Column(Integer, nullable=False)
 
 class Comment(db.Model):
@@ -125,8 +125,8 @@ class Comment(db.Model):
     rating = Column(Integer, nullable=False, default=0)
     created_date = Column(DateTime, default=datetime.now(ZoneInfo("Asia/Ho_Chi_Minh")), nullable=False)
 
-    user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
-    book_id = Column(Integer, ForeignKey('book.id'), nullable=False)
+    user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    book_id = Column(Integer, ForeignKey('book.id', ondelete='CASCADE'), nullable=False)
 
     class Meta:
         ordering = ['-id']

@@ -64,7 +64,9 @@ book_model = api.model('Book', {
     'quantity': fields.Integer(required=True, description='Số lượng sách'),
     'author_id': fields.Integer(required=True, description='Tác giả'),
     'category_id': fields.Integer(required=True, description='Thể loại'),
-    'average_rating': fields.Float(readOnly=True, description='Điểm đánh giá trung bình (1 đến 5)')
+    'average_rating': fields.Float(readOnly=True, description='Điểm đánh giá trung bình (1 đến 5)'),
+    'created_at': fields.DateTime(readOnly=True, description='Ngày thêm sách'),
+    'published_date': fields.DateTime(readOnly=True, description='Ngày xuất bản')
 })
 
 comment_model = api.model('Comment', {
@@ -168,6 +170,7 @@ book_parser.add_argument('image', type=FileStorage, required=False, help='Ảnh 
 book_parser.add_argument('quantity', type=int, required=True, help='Số lượng', location='form')
 book_parser.add_argument('author', type=str, required=True, help='Tác giả', location='form')
 book_parser.add_argument('category', type=str, required=True, help='Loại sách', location='form')
+book_parser.add_argument('published_date', type=str, help='Ngày xuất bản', location='form')
 
 ''' UPDATED BOOK '''
 book_update_parser = reqparse.RequestParser()
