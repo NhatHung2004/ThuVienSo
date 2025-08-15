@@ -62,7 +62,7 @@ def get_request_by_user_id(user_id):
                     "status": req.status.value,
                     "librarian_id": req.librarian_id,
                     "number_of_requests_day": req.number_of_requests_day,
-                    "borrowing_method": req.borrowing_method.value,
+                    "borrowing_method": req.borrowing_method.value if req.borrowing_method else None,
                     "purpose": req.purpose if req.purpose else None,
                     "name": req.name if req.name else None,
                     "phone": req.phone if req.phone else None,
