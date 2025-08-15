@@ -36,39 +36,44 @@ def get_request_list(status=None):
 def get_request_by_id(request_id):
     return Request.query.get(request_id)
 
-
-
 def get_request_by_user_id(user_id):
-    request = Request.query.filter_by(user_id=user_id).first()
+    request = Request.query.filter_by(user_id=user_id).all()
 
     if request:
-        request_detail = RequestDetail.query.filter_by(request_id=request.id).all()
+        response = []
 
-        if request_detail:
-            books_data = []
-            for req in request_detail:
-                books_data.append({
-                    "book_id": req.book_id,
-                    "quantity": req.quantity,
+        for req in request:
+            request_detail = RequestDetail.query.filter_by(request_id=req.id).all()
+
+            if request_detail:
+                books_data = []
+                for req_detail in request_detail:
+                    books_data.append({
+                        "book_id": req_detail.book_id,
+                        "quantity": req_detail.quantity,
+                    })
+
+                response.append({
+                    "user_id": user_id,
+                    "request_id": req.id,
+                    "books": books_data,
+                    "request_date": req.request_date.isoformat(),
+                    "return_date": req.return_date.isoformat() if req.return_date else None,
+                    "status": req.status.value,
+                    "librarian_id": req.librarian_id,
                 })
 
-            return {
-                "user_id": user_id,
-                "request_id": request.id,
-                "books": books_data,
-                "request_date": request.request_date.isoformat(),
-                "return_date": request.return_date.isoformat() if request.return_date else None,
-                "status": request.status.value,
-                "librarian_id": request.librarian_id,
-            }
+        return response
 
     return {
         "request_id": None,
         "message": "Request not found",
     }
 
-def request_to_borrow_books(user_id, books):
-    request = Request(user_id=user_id)
+def request_to_borrow_books(user_id, books, borrowing_method,
+                                                  purpose, name, phone, cccd, job, address, ward, province, city):
+    request = Request(user_id=user_id, borrowing_method=borrowing_method, purpose=purpose, name=name,
+                      phone=phone, cccd=cccd, job=job, address=address, ward=ward, province=province, city=city)
 
     db.session.add(request)
     db.session.flush()  # Lấy borrow_request.id mà không cần commit
@@ -134,3 +139,8 @@ def return_books(request_id):
 
     db.session.commit()
     return request
+
+def delete_all_requests():
+    Request.query.delete()
+    db.session.commit()
+    return None

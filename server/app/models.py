@@ -21,6 +21,13 @@ class StatusCheck(DataEnum):
     def __str__(self):
         return str(self.value)
 
+class BorrowingMethod(DataEnum):
+    DIRECT = "DIRECT"
+    TRANSPORT = "TRANSPORT"
+
+    def __str__(self):
+        return str(self.value)
+
 class User(db.Model, UserMixin):
     id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(String(50), nullable=False, unique=True)
@@ -35,6 +42,7 @@ class User(db.Model, UserMixin):
     approved_requests = relationship("Request", backref="librarian", foreign_keys="Request.librarian_id", lazy=True)
     comments = relationship("Comment", backref="user", cascade="all, delete-orphan", lazy=True)
     carts = relationship("Cart", backref="user", cascade="all, delete-orphan", lazy=True)
+    relatives = relationship("Relative", backref="user", lazy=True)
 
     def __str__(self):
         return self.username
@@ -49,6 +57,8 @@ class Book(db.Model):
     image = Column(String(250), nullable=True)
     quantity = Column(Integer, nullable=False)
     average_rating = Column(Float, default=0)
+    created_at = Column(DateTime, default=datetime.now(ZoneInfo("Asia/Ho_Chi_Minh")))
+    published_date = Column(DateTime, nullable=True)
 
     author_id = Column(Integer, ForeignKey('author.id'), nullable=False)
     category_id = Column(Integer, ForeignKey('category.id'), nullable=False)
@@ -82,7 +92,18 @@ class Request(db.Model):
     id = Column(Integer, primary_key=True, autoincrement=True)
     status = Column(Enum(StatusCheck), default=StatusCheck.PENDING)
     request_date = Column(DateTime, nullable=False, default=datetime.now(ZoneInfo("Asia/Ho_Chi_Minh")))
+    number_of_requests_day = Column(Integer, nullable=True)
     return_date = Column(DateTime, nullable=True)
+    borrowing_method = Column(Enum(BorrowingMethod), nullable=True)
+    purpose = Column(String(200), nullable=True)
+    name = Column(String(200), nullable=True)
+    phone = Column(String(15), nullable=True)
+    cccd = Column(String(15), nullable=True)
+    job = Column(String(50), nullable=True)
+    address = Column(String(200), nullable=True)
+    ward = Column(String(200), nullable=True)
+    province = Column(String(50), nullable=True)
+    city = Column(String(50), nullable=True)
 
     user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
     librarian_id = Column(Integer, ForeignKey('user.id'), nullable=True)
@@ -94,7 +115,7 @@ class Request(db.Model):
 
 class RequestDetail(db.Model):
     id = Column(Integer, primary_key=True, autoincrement=True)
-    request_id = Column(Integer, ForeignKey('request.id'), nullable=False)
+    request_id = Column(Integer, ForeignKey('request.id', ondelete='CASCADE'), nullable=False)
     book_id = Column(Integer, ForeignKey('book.id'), nullable=False)
     quantity = Column(Integer, nullable=False)
 
@@ -122,3 +143,11 @@ class CartDetail(db.Model):
     book_id = Column(Integer, ForeignKey('book.id'), nullable=False)
     cart_id = Column(Integer, ForeignKey('cart.id'), nullable=False)
     quantity = Column(Integer, nullable=False, default=0)
+
+class Relative(db.Model):
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(100), nullable=False)
+    phone = Column(String(15), nullable=True)
+    relationship = Column(String(100), nullable=True)
+
+    user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
