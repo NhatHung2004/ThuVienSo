@@ -20,12 +20,7 @@ const LibrarianHome = () => {
         <SidebarItem
           icon={<BanknoteArrowUp />}
           text="Duyệt mượn"
-          to="/managements/invoice-manage"
-        />
-        <SidebarItem
-          icon={<ClipboardList />}
-          text="Lịch sử mượn"
-          to="/managements/create-survey"
+          to="/book-request"
         />
         <SidebarItem icon={<BarChart2 />} text="Thống kê" to="/stat" />
       </Sidebar>

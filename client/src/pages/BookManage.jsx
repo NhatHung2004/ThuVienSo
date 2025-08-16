@@ -19,6 +19,7 @@ const BookManage = () => {
   const [loading, setLoading] = useState(false);
   const [cates, setCates] = useState([]);
   const [books, setBooks] = useState([]);
+  const [filteredBooks, setFilteredBooks] = useState([]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
@@ -27,6 +28,13 @@ const BookManage = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
+
+  // States cho tìm kiếm và lọc
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [sortBy, setSortBy] = useState("all");
+
   const navigate = useNavigate();
 
   const fetchBooks = async () => {
@@ -34,6 +42,7 @@ const BookManage = () => {
     try {
       const res = await Apis.get("/books/");
       setBooks(res.data);
+      setFilteredBooks(res.data);
       console.log(res.data);
     } catch {
       setLoading(false);
@@ -56,6 +65,63 @@ const BookManage = () => {
       setLoading(false);
     }
   };
+
+  // Hàm tìm kiếm và lọc
+  const filterBooks = () => {
+    let filtered = [...books];
+
+    // Tìm kiếm theo tên sách hoặc tác giả
+    if (searchTerm.trim()) {
+      filtered = filtered.filter((book) => {
+        const title = book.title || "";
+        const author = book.author || "";
+        return (
+          title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          author.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      });
+    }
+
+    // Lọc theo thể loại
+    if (filterCategory && filterCategory !== "all") {
+      filtered = filtered.filter(
+        (book) =>
+          book.category_id === parseInt(filterCategory) ||
+          book.category === parseInt(filterCategory)
+      );
+    }
+
+    // Lọc theo trạng thái
+    if (filterStatus === "available") {
+      filtered = filtered.filter((book) => (book.quantity || 0) > 0);
+    } else if (filterStatus === "unavailable") {
+      filtered = filtered.filter((book) => (book.quantity || 0) === 0);
+    }
+
+    // Sắp xếp
+    if (sortBy === "name-asc") {
+      filtered = filtered.sort((a, b) =>
+        (a.title || "").localeCompare(b.title || "")
+      );
+    } else if (sortBy === "name-desc") {
+      filtered = filtered.sort((a, b) =>
+        (b.title || "").localeCompare(a.title || "")
+      );
+    } else if (sortBy === "newest") {
+      filtered = filtered.sort((a, b) => {
+        const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
+        const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
+        return dateB - dateA;
+      });
+    }
+
+    setFilteredBooks(filtered);
+  };
+
+  // Gọi filterBooks khi có thay đổi trong tìm kiếm/lọc
+  useEffect(() => {
+    filterBooks();
+  }, [searchTerm, filterCategory, filterStatus, sortBy, books]);
 
   const addBook = async () => {
     try {
@@ -88,7 +154,7 @@ const BookManage = () => {
     setName("");
     setDescription("");
     setImage("");
-    setPreviewUrl(null); // thêm dòng này
+    setPreviewUrl(null);
     setQuantity("");
     setAuthor("");
     if (cates.length > 0) setSelectedCategory(cates[0].name);
@@ -104,7 +170,7 @@ const BookManage = () => {
     if (file) {
       const imageUrl = URL.createObjectURL(file);
       setPreviewUrl(imageUrl);
-      setImage(file); // <-- thêm dòng này để lưu file ảnh
+      setImage(file);
     }
   };
 
@@ -242,21 +308,11 @@ const BookManage = () => {
       )}
 
       <Sidebar>
-        <SidebarItem
-          icon={<Receipt />}
-          text="Quản lý sách"
-          to="/managements/invoice"
-          active={true}
-        />
+        <SidebarItem icon={<Receipt />} text="Quản lý sách" to="/book-manage" />
         <SidebarItem
           icon={<BanknoteArrowUp />}
           text="Duyệt mượn"
           to="/book-request"
-        />
-        <SidebarItem
-          icon={<ClipboardList />}
-          text="Lịch sử mượn"
-          to="/history-librarian"
         />
         <SidebarItem icon={<BarChart2 />} text="Thống kê" to="/stat" />
       </Sidebar>
@@ -276,6 +332,8 @@ const BookManage = () => {
                 <input
                   type="text"
                   placeholder="Nhập tên sách, tác giả,..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded pl-10 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
                 <Search className="absolute left-3 top-2.5 text-gray-400 h-5 w-5" />
@@ -286,8 +344,12 @@ const BookManage = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Thể loại
               </label>
-              <select className="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                <option>Tất cả</option>
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="all">Tất cả</option>
                 {cates.map((cate) => (
                   <option key={cate.id} value={cate.id}>
                     {cate.name}
@@ -300,10 +362,14 @@ const BookManage = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Trạng thái
               </label>
-              <select className="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                <option>Tất cả</option>
-                <option>Còn sách</option>
-                <option>Đã hết</option>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="all">Tất cả</option>
+                <option value="available">Còn sách</option>
+                <option value="unavailable">Đã hết</option>
               </select>
             </div>
 
@@ -311,11 +377,15 @@ const BookManage = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Sắp xếp
               </label>
-              <select className="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                <option>Tất cả</option>
-                <option>Tên A-Z</option>
-                <option>Tên Z-A</option>
-                <option>Mới nhất</option>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="all">Mặc định</option>
+                <option value="name-asc">Tên A-Z</option>
+                <option value="name-desc">Tên Z-A</option>
+                <option value="newest">Mới nhất</option>
               </select>
             </div>
 
@@ -335,23 +405,17 @@ const BookManage = () => {
         <div className="bg-white p-4 rounded-lg shadow">
           <h2 className="text-lg font-semibold mb-4">Danh sách sách</h2>
           <p className="text-gray-600 mb-4">
-            Quản lý toàn bộ sách trong thư viện
+            Quản lý toàn bộ sách trong thư viện. Tìm thấy {filteredBooks.length}{" "}
+            cuốn sách
           </p>
 
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
                 <tr className="bg-blue-50">
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-8">
-                    <input
-                      type="checkbox"
-                      className="rounded text-blue-600 focus:ring-blue-500"
-                    />
-                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Sách
                   </th>
-
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Trạng thái
                   </th>
@@ -364,85 +428,101 @@ const BookManage = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {books.map((book) => (
-                  <tr key={book.id} className="hover:bg-blue-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <input
-                        type="checkbox"
-                        className="rounded text-blue-600 focus:ring-blue-500"
-                      />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <strong className="font-semibold">{book.title}</strong>
-                        <div className="text-gray-600">{book.author}</div>
-                        <div className="text-sm text-gray-500">
-                          ISBN: {book.isbn || "Chưa cập nhật"}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 py-1 text-xs rounded-full ${
-                          book.quantity > 0
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {book.quantity > 0 ? "Còn sách" : "Đã hết"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center text-yellow-500">
-                        <span>★</span>
-                        <span className="ml-1 text-gray-700">
-                          {book.average_rating || 0}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex space-x-2">
-                        <button className="text-blue-600 hover:text-blue-800">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                          >
-                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => navigate(`/book-detail/${book.id}`)}
-                          className="text-green-600 hover:text-green-800"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                          >
-                            <path d="M10 3C5 3 1.73 7.11 1.05 10c.68 2.89 3.95 7 8.95 7s8.27-4.11 8.95-7c-.68-2.89-3.95-7-8.95-7zm0 12a5 5 0 110-10 5 5 0 010 10zm0-8a3 3 0 100 6 3 3 0 000-6z" />
-                          </svg>
-                        </button>
-                        <button className="text-red-600 hover:text-red-800">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </button>
-                      </div>
+                {filteredBooks.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan="4"
+                      className="px-6 py-8 text-center text-gray-500"
+                    >
+                      Không tìm thấy sách nào phù hợp
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredBooks.map((book) => (
+                    <tr key={book.id} className="hover:bg-blue-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <strong className="font-semibold">
+                            {book.title}
+                          </strong>
+                          <div className="text-gray-600">{book.author}</div>
+                          <div className="text-sm text-gray-500">
+                            ISBN: {book.isbn || "Chưa cập nhật"}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-2 py-1 text-xs rounded-full ${
+                            book.quantity > 0
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {book.quantity > 0
+                            ? `Còn ${book.quantity} cuốn`
+                            : "Đã hết"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center text-yellow-500">
+                          <span>★</span>
+                          <span className="ml-1 text-gray-700">
+                            {book.average_rating || 0}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex space-x-2">
+                          <button
+                            className="text-blue-600 hover:text-blue-800"
+                            title="Sửa"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => navigate(`/book-detail/${book.id}`)}
+                            className="text-green-600 hover:text-green-800"
+                            title="Xem chi tiết"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path d="M10 3C5 3 1.73 7.11 1.05 10c.68 2.89 3.95 7 8.95 7s8.27-4.11 8.95-7c-.68-2.89-3.95-7-8.95-7zm0 12a5 5 0 110-10 5 5 0 010 10zm0-8a3 3 0 100 6 3 3 0 000-6z" />
+                            </svg>
+                          </button>
+                          <button
+                            className="text-red-600 hover:text-red-800"
+                            title="Xóa"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

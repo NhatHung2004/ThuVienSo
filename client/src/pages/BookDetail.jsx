@@ -1,9 +1,6 @@
 import React, { useEffect, useState, useContext } from "react";
-import { Link } from "react-router-dom";
-import Book2 from "../components/layouts/Book2";
-import { useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { Apis, authApis } from "../configs/Apis";
-import { useNavigate } from "react-router-dom";
 import { MyUserContext } from "../configs/MyContext";
 
 const BookDetail = () => {
@@ -18,111 +15,100 @@ const BookDetail = () => {
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewContent, setReviewContent] = useState("");
 
-  const fetchBookFromBookId = async () => {
+  // Lấy book + author cùng lúc
+  const fetchBookAndAuthor = async () => {
     try {
-      let res = await Apis.get(`/books/${bookId}`);
-      setBook(res.data);
-    } catch (error) {
-      console.log("Có lỗi ", error);
-    }
-  };
+      // Lấy dữ liệu sách
+      const bookRes = await Apis.get(`/books/${bookId}`);
+      setBook(bookRes.data);
 
-  const fetchUserByUserId = async (userId) => {
-    try {
-      let res = await Apis.get(`/users/${userId}`);
-      return res.data;
-    } catch {
-      console.log("Có lỗi khi lấy dữ liệu người dùng");
-      return { name: "Ẩn danh" };
-    }
-  };
+      // Lấy tác giả và bình luận song song
+      const [authorRes, commentRes] = await Promise.all([
+        Apis.get(`/authors/${bookRes.data.author_id}`),
+        Apis.get(`/books/${bookId}/comments`).catch((err) => {
+          // Nếu API trả 404 thì coi như không có bình luận
+          if (err.response?.status === 404) return { status: 404, data: [] };
+          throw err; // các lỗi khác ném ra để catch bên ngoài
+        }),
+      ]);
 
-  const fetchAuthorByAuthorId = async () => {
-    try {
-      let res = await Apis.get(`/authors/${book.author_id}`);
-      setAuthor(res.data);
-    } catch {
-      console.log("Có lỗi khi lấy dữ liệu tác giả");
-    }
-  };
+      setAuthor(authorRes.data);
 
-  const fetchComment = async () => {
-    try {
-      console.log(bookId);
-      let res = await Apis.get(`/books/${bookId}/comments`);
-      const commentData = res.data;
+      let commentsWithUser = [];
 
-      const commentsWithUser = await Promise.all(
-        commentData.map(async (cmt) => {
-          const user = await fetchUserByUserId(cmt.user_id);
-          return { ...cmt, firstname: user.firstname, lastname: user.lastname };
-        })
-      );
+      // Nếu có bình luận thì mới xử lý map
+      if (commentRes.status === 200 && Array.isArray(commentRes.data)) {
+        commentsWithUser = await Promise.all(
+          commentRes.data.map(async (cmt) => {
+            try {
+              const userRes = await Apis.get(`/users/${cmt.user_id}`);
+              return {
+                ...cmt,
+                firstname: userRes.data.firstname,
+                lastname: userRes.data.lastname,
+              };
+            } catch {
+              return { ...cmt, firstname: "Ẩn", lastname: "Danh" };
+            }
+          })
+        );
+      } else {
+        console.warn("Không có bình luận nào.");
+      }
+
       setComments(commentsWithUser);
-    } catch {
-      console.log("Có lỗi khi lấy dữ liệu bình luận");
-      setComments([]);
+    } catch (err) {
+      console.error("Lỗi khi load dữ liệu:", err);
     }
   };
 
   const addCart = async () => {
+    if (!user) {
+      alert("Bạn cần đăng nhập để thêm giỏ hàng");
+      return;
+    }
     try {
-      const res = await authApis().post("/carts/", {
+      await authApis().post("/carts/", {
         user_id: user.id,
         book_id: bookId,
         quantity: 1,
       });
-      console.log(res.data);
       alert("Đã thêm vào giỏ hàng");
     } catch (err) {
-      console.log(err);
+      console.error(err);
+      alert("Thêm vào giỏ hàng thất bại!");
     }
   };
 
   const addComment = async () => {
-    if (user === null) {
-      alert("Bạn cần đăng nhập để có thể để lại bình luận!!!");
+    if (!user) {
+      alert("Bạn cần đăng nhập để bình luận!");
       return;
     }
-
-    if (reviewRating === 0 || reviewContent.trim() === "") {
-      alert("Vui lòng nhập đánh giá và nội dung trước khi gửi.");
+    if (!reviewRating || !reviewContent.trim()) {
+      alert("Vui lòng nhập đủ thông tin đánh giá!");
       return;
     }
     try {
-      const res = await authApis().post(`/books/${bookId}/comments`, {
+      await authApis().post(`/books/${bookId}/comments`, {
         content: reviewContent,
         user_id: user.id,
         rating: reviewRating,
       });
-      if (res != null) {
-        alert("Thêm bình luận thành công !!!");
-        await fetchComment();
-        setShowReviewForm(false);
-        setReviewRating(0);
-        setReviewContent("");
-      } else {
-        console.log("Thêm bình luận thất bại !!!");
-      }
+      alert("Thêm bình luận thành công!");
+      setShowReviewForm(false);
+      setReviewRating(0);
+      setReviewContent("");
+      fetchBookAndAuthor(); // Refresh lại comment + rating
     } catch (err) {
-      console.log("Đã có lỗi xảy ra " + err);
-      alert("Thêm bình luận thất bại !!!");
+      console.error(err);
+      alert("Thêm bình luận thất bại!");
     }
   };
 
   useEffect(() => {
-    const fetchData = async () => {
-      await fetchBookFromBookId();
-      await fetchComment();
-    };
-    fetchData();
+    fetchBookAndAuthor();
   }, [bookId]);
-
-  useEffect(() => {
-    if (book?.author_id) {
-      fetchAuthorByAuthorId(book.author_id);
-    }
-  }, [book]);
 
   if (!book || !author) {
     return (
@@ -227,7 +213,12 @@ const BookDetail = () => {
                       <div className="flex flex-col sm:flex-row gap-4 mb-6">
                         <button
                           onClick={addCart}
-                          className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+                          disabled={book.quantity === 0}
+                          className={`bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl ${
+                            book.quantity === 0
+                              ? "opacity-50 cursor-not-allowed"
+                              : "hover:from-blue-700 hover:to-blue-800 transform hover:scale-105"
+                          }`}
                         >
                           <svg
                             className="w-5 h-5 inline mr-2"
@@ -242,23 +233,7 @@ const BookDetail = () => {
                               d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5-6m0 0h12M17 13v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6"
                             />
                           </svg>
-                          Thêm vào giỏ
-                        </button>
-                        <button className="border-2 border-red-200 text-red-600 px-8 py-3 rounded-xl font-semibold hover:bg-red-50 hover:border-red-300 transition-all duration-200">
-                          <svg
-                            className="w-5 h-5 inline mr-2"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                            />
-                          </svg>
-                          Yêu thích
+                          {book.quantity === 0 ? "Hết sách" : "Thêm vào giỏ"}
                         </button>
                       </div>
                     </div>
@@ -348,7 +323,7 @@ const BookDetail = () => {
 
                 {/* Review Form */}
                 {showReviewForm && (
-                  <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-100">
+                  <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-blue-100 rounded-2xl border border-blue-100">
                     <h4 className="text-xl font-bold mb-6 text-gray-900">
                       Chia sẻ đánh giá của bạn
                     </h4>
