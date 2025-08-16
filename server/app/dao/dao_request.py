@@ -30,6 +30,17 @@ def get_request_list(status=None):
             'user_id': req.user_id,
             'librarian_id': req.librarian_id,
             'books': book_list,
+            "number_of_requests_day": req.number_of_requests_day if req.number_of_requests_day else None,
+            "borrowing_method": req.borrowing_method.value if req.borrowing_method else None,
+            "purpose": req.purpose,
+            "name": req.name,
+            "phone": req.phone,
+            "cccd": req.cccd,
+            "job": req.job,
+            "address": req.address,
+            "ward": req.ward,
+            "province": req.province,
+            "city": req.city,
         })
     return requests_data
 

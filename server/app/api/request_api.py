@@ -12,8 +12,8 @@ from app.utils.check_role import role_required
 @request_ns.route('/')
 class Requests(Resource):
     @request_ns.expect(get_request_parser)
-    @jwt_required()
-    @role_required([UserRole.LIBRARIAN.value])
+    # @jwt_required()
+    # @role_required([UserRole.LIBRARIAN.value])
     def get(self):
         """ Lấy toàn bộ request, lấy theo status """
         status = request.args.get('status')
@@ -56,8 +56,8 @@ class Requests(Resource):
 @request_ns.route('/<int:request_id>')
 class RequestList(Resource):
     @request_ns.marshal_with(request_model)
-    @jwt_required()
-    @role_required([UserRole.LIBRARIAN.value])
+    # @jwt_required()
+    # @role_required([UserRole.LIBRARIAN.value])
     def get(self, request_id):
         """ Lấy request theo id """
         req = dao_request.get_request_by_id(request_id)
