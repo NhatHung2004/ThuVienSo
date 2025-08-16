@@ -18,6 +18,7 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
+  BanknoteArrowUp,
 } from "lucide-react";
 import Sidebar, { SidebarItem } from "../components/layouts/Sidebar";
 import { Apis, authApis } from "../configs/Apis";
@@ -37,6 +38,15 @@ const BookRequest = () => {
   const fetchBookFromBookId = async (bookId) => {
     try {
       let res = await Apis.get(`/books/${bookId}`);
+      return res.data;
+    } catch (error) {
+      console.log("Có lỗi ", error);
+    }
+  };
+
+  const fetchUserFromUserId = async (userId) => {
+    try {
+      let res = await Apis.get(`/users/${userId}`);
       return res.data;
     } catch (error) {
       console.log("Có lỗi ", error);
@@ -64,20 +74,33 @@ const BookRequest = () => {
             })
           );
 
+          const userData = await fetchUserFromUserId(req.user_id);
+          const borrowerName =
+            userData.firstname || userData.lastname
+              ? `${userData.firstname || ""} ${userData.lastname || ""}`.trim()
+              : "Ẩn danh";
+
           return {
             id: req.id,
             borrower: {
-              name: `Mã người dùng: ${req.user_id}`,
+              name: borrowerName,
               studentId: `SV${String(req.user_id).padStart(3, "0")}`,
-              email: "Không có dữ liệu",
-              phone: "Chưa cập nhật",
+              email: userData.email || "Không có dữ liệu",
+              phone: req.phone,
               class: "Chưa rõ",
             },
             books: booksWithDetails,
             requestDate: req.request_date,
             expectedReturnDate: req.return_date,
+            address: req.address,
+            method: req.borrowing_method,
+            job: req.job,
+            number_date: req.number_of_requests_day,
             status: req.status.toLowerCase(),
-            note: "",
+            note: req.purpose,
+            ward: req.ward,
+            province: req.province,
+            city: req.city,
           };
         })
       );
@@ -88,64 +111,6 @@ const BookRequest = () => {
       setLoading(false);
     }
   };
-
-  const acceptedReq = async () => {
-    try {
-      // 1. Chuyển librarian_id thành số nguyên
-      // 2. Kiểm tra ngày trả có hợp lệ (tương lai)
-
-      const payload = {
-        librarian_id: user.id, // Chuyển thành số
-        returned_date: "2025-08-10T23:59:59", // Đảm bảo định dạng YYYY-MM-DD
-      };
-
-      console.log("Payload:", payload);
-
-      const res = await authApis().patch(
-        `/requests/${selectedRequest.id}/accepted`,
-        payload
-      );
-
-      if (res.data) {
-        alert("Đã chấp nhận yêu cầu!");
-        fetchAllRequestsWithBooks();
-      }
-    } catch (err) {
-      console.error("Chi tiết lỗi:", {
-        status: err.response?.status,
-        data: err.response?.data, // ⭐ Lỗi chi tiết từ server
-        message: err.message,
-      });
-    }
-  };
-
-  const declinedReq = async () => {
-    try {
-      const payload = {
-        librarian_id: user.id, // ID thủ thư xử lý
-        declined_reason: "Không đủ sách hoặc lý do khác", // Nếu có lý do cụ thể thì truyền vào
-      };
-
-      console.log("Payload từ chối:", payload);
-
-      const res = await authApis().patch(
-        `/requests/${selectedRequest.id}/declined`,
-        payload
-      );
-
-      if (res.data) {
-        alert("Đã từ chối yêu cầu!");
-        fetchAllRequestsWithBooks();
-      }
-    } catch (err) {
-      console.error("Chi tiết lỗi từ chối:", {
-        status: err.response?.status,
-        data: err.response?.data,
-        message: err.message,
-      });
-    }
-  };
-
   useEffect(() => {
     fetchAllRequestsWithBooks();
   }, []);
@@ -213,15 +178,9 @@ const BookRequest = () => {
       <Sidebar>
         <SidebarItem icon={<Receipt />} text="Quản lý sách" to="/book-manage" />
         <SidebarItem
-          icon={<TrendingUp />}
+          icon={<BanknoteArrowUp />}
           text="Duyệt mượn"
-          to="/managements/invoice-manage"
-          active={true}
-        />
-        <SidebarItem
-          icon={<ClipboardList />}
-          text="Lịch sử mượn"
-          to="/history-librarian"
+          to="/book-request"
         />
         <SidebarItem icon={<BarChart2 />} text="Thống kê" to="/stat" />
       </Sidebar>

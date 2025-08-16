@@ -28,6 +28,7 @@ author_ns = api.namespace('authors', description='Các thao tác liên quan đ�
 request_ns = api.namespace('requests', description='Các thao tác liên quan đến mượn trả sách')
 stats_ns = api.namespace('stats', description='Các thao tác liên quan đến thống kê')
 cart_ns = api.namespace('carts', description='Các thao tác liên quan đến giỏ hàng')
+relative_ns = api.namespace('relatives', description='Các thao tác liên quan đến người thân')
 
 @api.errorhandler(NoAuthorizationError)
 def handle_no_authorization_error(error):
@@ -63,7 +64,9 @@ book_model = api.model('Book', {
     'quantity': fields.Integer(required=True, description='Số lượng sách'),
     'author_id': fields.Integer(required=True, description='Tác giả'),
     'category_id': fields.Integer(required=True, description='Thể loại'),
-    'average_rating': fields.Float(readOnly=True, description='Điểm đánh giá trung bình (1 đến 5)')
+    'average_rating': fields.Float(readOnly=True, description='Điểm đánh giá trung bình (1 đến 5)'),
+    'created_at': fields.DateTime(readOnly=True, description='Ngày thêm sách'),
+    'published_date': fields.DateTime(readOnly=True, description='Ngày xuất bản')
 })
 
 comment_model = api.model('Comment', {
@@ -87,6 +90,25 @@ request_model = api.model('Request', {
     'return_date': fields.DateTime(required=True, description='Ngày trả sách'),
     'user_id': fields.Integer(required=True, description='ID người mượn'),
     'librarian_id': fields.Integer(required=True, description='ID thủ thư duyệt'),
+    'number_of_requests_day': fields.String(required=True, description='Số ngày mượn'),
+    'borrowing_method': fields.String(required=True, description='Phương thức mượn'),
+    'purpose': fields.String(required=True, description='Mục đích mượn'),
+    'name': fields.String(required=True, description='Tên người mượn'),
+    'phone': fields.String(required=True, description='Số điện thoại'),
+    'cccd': fields.String(required=True, description='Căn cước công dân'),
+    'job' : fields.String(required=True, description='Công việc'),
+    'address': fields.String(required=True, description='Địa chỉ'),
+    'ward': fields.String(required=True, description='Phường xã'),
+    'province' : fields.String(required=True, description='Quận huyện'),
+    'city' : fields.String(required=True, description='Thành phố'),
+})
+
+relative_model = api.model('Relative', {
+    'id': fields.Integer(readOnly=True, description='ID duy nhất của người thân'),
+    'name': fields.String(readOnly=True, description='Tên của người thân'),
+    'phone': fields.String(readOnly=True, description='Số điện thoại của người thân'),
+    'relationship': fields.String(readOnly=True, description='Mối quan hệ với người dùng'),
+    'user_id': fields.Integer(required=True, description='ID người dùng'),
 })
 
 book_frequency_statistics_model = api.model('BookFrequencyStatistics', {
@@ -148,6 +170,7 @@ book_parser.add_argument('image', type=FileStorage, required=False, help='Ảnh 
 book_parser.add_argument('quantity', type=int, required=True, help='Số lượng', location='form')
 book_parser.add_argument('author', type=str, required=True, help='Tác giả', location='form')
 book_parser.add_argument('category', type=str, required=True, help='Loại sách', location='form')
+book_parser.add_argument('published_date', type=str, help='Ngày xuất bản', location='form')
 
 ''' UPDATED BOOK '''
 book_update_parser = reqparse.RequestParser()
@@ -176,6 +199,17 @@ get_author_parser.add_argument('name', location='args', type=str, help='Tên tá
 request_creation_parser = reqparse.RequestParser()
 request_creation_parser.add_argument('user_id', type=str, help='Người mượn sách')
 request_creation_parser.add_argument('books', type=list, help='Danh sách sách cần mượn')
+request_creation_parser.add_argument('borrowing_method', type=str, help='Phương thức mượn')
+request_creation_parser.add_argument('number_of_requests_day', type=int, help='Số ngày mượn mượn')
+request_creation_parser.add_argument('purpose', type=str, help='Mục đích mượn')
+request_creation_parser.add_argument('name', type=str, help='Tên người mượn')
+request_creation_parser.add_argument('phone', type=str, help='Số điện thoại')
+request_creation_parser.add_argument('cccd', type=str, help='Căn cước công dân')
+request_creation_parser.add_argument('job', type=str, help='Công việc')
+request_creation_parser.add_argument('address', type=str, help='Địa chỉ')
+request_creation_parser.add_argument('ward', type=str, help='Phường, thị xã')
+request_creation_parser.add_argument('province', type=str, help='Quận huyện')
+request_creation_parser.add_argument('city', type=str, help='Thành phố')
 
 ''' Accept request '''
 accepted_request_parser = reqparse.RequestParser()
@@ -205,3 +239,9 @@ update_cart_detail_parser = reqparse.RequestParser()
 update_cart_detail_parser.add_argument('cart_id', type=int, help='Id của giỏ hàng')
 update_cart_detail_parser.add_argument('book_id', type=int, help='Id của sách cần mượn')
 update_cart_detail_parser.add_argument('quantity', type=int, help='Số lượng sách giảm')
+
+''' Create relative '''
+create_relative_parser = reqparse.RequestParser()
+create_relative_parser.add_argument('name', type=str, help='Tên người thân')
+create_relative_parser.add_argument('phone', type=str, help='Số điện thoại người thân')
+create_relative_parser.add_argument('relationship', type=str, help='Mối quan hệ với người dùng')

@@ -27,7 +27,7 @@ def get_books_list(kw=None, category_id=None):
 
     return query if query else None
 
-def add_book(title, description, image, quantity, author, category):
+def add_book(title, description, image, quantity, author, category, published_date):
     au = Author.query.filter(Author.name.__eq__(author)).first()
     cate = Category.query.filter(Category.name.__eq__(category)).first()
 
@@ -35,7 +35,7 @@ def add_book(title, description, image, quantity, author, category):
         au = Author(name=author)
         db.session.add(au)
 
-    book = Book(title=title, description=description, image=image, quantity=quantity, author=au, category=cate)
+    book = Book(title=title, description=description, image=image, quantity=quantity, author=au, category=cate, published_date=published_date)
     db.session.add(book)
     db.session.commit()
     return book

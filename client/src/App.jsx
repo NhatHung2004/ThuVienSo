@@ -14,6 +14,7 @@ import BookManage from "./pages/BookManage";
 import BookRequest from "./pages/BookRequest";
 import HistoryAcpt from "./pages/HistoryAcpt";
 import Stat from "./pages/Stat";
+import InformationProvide from "./pages/InformationProvide";
 import { MyUserContext, MyUserDispatchContext } from "./configs/MyContext";
 import MyUserReducer from "./reducer/MyUserReducer";
 const Layout = ({ children }) => {
@@ -74,6 +75,10 @@ const App = () => {
               <Route path="/book-request" element={<BookRequest />} />
               <Route path="/stat" element={<Stat />} />
               <Route path="/history-librarian" element={<HistoryAcpt />} />
+              <Route
+                path="/information-provide"
+                element={<InformationProvide />}
+              />
             </Routes>
           </Layout>
         </BrowserRouter>

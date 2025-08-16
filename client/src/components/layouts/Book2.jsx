@@ -24,9 +24,6 @@ const Book2 = ({ book }) => {
         {title}
       </p>
 
-      {/* Giá sách */}
-      <p className="text-center text-[#214E99] font-semibold">220.000 VND</p>
-
       {/* Trạng thái */}
       <p
         className={`text-center font-medium ${

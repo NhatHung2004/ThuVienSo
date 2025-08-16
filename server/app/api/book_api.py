@@ -75,7 +75,6 @@ class Book(Resource):
     @book_ns.expect(book_update_parser)
     @book_ns.marshal_with(book_model)
     @jwt_required()
-    @role_required([UserRole.LIBRARIAN.value])
     def patch(self, book_id):
         """ Cập nhật thông tin sách """
         args = book_update_parser.parse_args()

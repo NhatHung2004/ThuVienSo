@@ -1,7 +1,7 @@
 from flask import request
-from app.dao import dao_user, dao_cart, dao_request
+from app.dao import dao_user, dao_cart, dao_request, dao_relative
 from flask_restx import Resource
-from app.api_conf import user_ns, user_model, user_creation_parser, message_model, user_parser
+from app.api_conf import user_ns, user_model, user_creation_parser, message_model, user_parser, relative_model, create_relative_parser
 from flask_jwt_extended import jwt_required
 from cloudinary import uploader
 from app.models import UserRole
@@ -78,12 +78,12 @@ class User(Resource):
 
 @user_ns.route('/<int:user_id>/requests')
 class UserRequests(Resource):
-    @jwt_required()
+    # @jwt_required()
     def get(self, user_id):
         """ Lấy request theo userId """
         res = dao_request.get_request_by_user_id(user_id)
 
-        if res["request_id"] is not None:
+        if res[0]["request_id"] is not None:
             return res, 200
 
         return res, 404
@@ -100,7 +100,43 @@ class UserCartDetail(Resource):
         else:
             return res, 200
 
+@user_ns.route('/<int:user_id>/relatives')
+class UserRelatives(Resource):
+    @user_ns.marshal_list_with(relative_model)
+    @jwt_required()
+    def get(self, user_id):
+        """ Lấy danh sách người thân theo user_id """
+        relative = dao_relative.get_relative_by_user_id(user_id)
+
+        return (relative, 200) if relative else (None, 404)
+
+    @user_ns.expect(create_relative_parser)
+    @user_ns.marshal_with(relative_model)
+    @jwt_required()
+    def post(self, user_id):
+        """ Tạo người thân theo user_id """
+        args = create_relative_parser.parse_args()
+
+        relative = dao_relative.create_relative(args['name'], args['phone'], args['relationship'], user_id)
+
+        if relative:
+            return relative, 201
+
+        return None, 404
+
+    @jwt_required()
+    def delete(self, user_id):
+        """ Xoá người thân """
+        deleted = dao_relative.delete_relative_by_user_id(user_id)
+
+        if deleted:
+            return '', 204
+
+        return None, 404
+
+
 user_ns.add_resource(UserList, '/')
 user_ns.add_resource(User, '/<int:user_id>')
 user_ns.add_resource(UserRequests, '/<int:user_id>/requests')
 user_ns.add_resource(UserCartDetail, '/<int:user_id>/cart')
+user_ns.add_resource(UserRelatives, '/<int:user_id>/relatives')
