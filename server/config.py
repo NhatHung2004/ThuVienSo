@@ -7,8 +7,9 @@ load_dotenv()
 
 class Config:
     # Cấu hình cơ sở dữ liệu MySQL
-    SQLALCHEMY_DATABASE_URI = (os.environ.get("MYSQL_URL") or
-                               f"mysql+pymysql://root:{os.getenv('MYSQL_PASSWORD')}@localhost:3306/thuvien?charset=utf8mb4")
+    # SQLALCHEMY_DATABASE_URI = (os.environ.get("MYSQL_URL") or
+    #                            f"mysql+pymysql://root:{os.getenv('MYSQL_PASSWORD')}@localhost:3306/thuvien?charset=utf8mb4")
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
     SQLALCHEMY_TRACK_MODIFICATIONS = True
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
     SECRET_KEY = os.getenv('SECRET_KEY')
