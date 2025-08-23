@@ -6,14 +6,16 @@ from flask import request
 from app.dao import dao_request
 from datetime import datetime
 from app.models import UserRole
+from app.utils.send_email import send_request_email
 from app.utils.check_role import role_required
+from app.utils.get_email import get_email_by_userid
 
 
 @request_ns.route('/')
 class Requests(Resource):
     @request_ns.expect(get_request_parser)
-    # @jwt_required()
-    # @role_required([UserRole.LIBRARIAN.value])
+    @jwt_required()
+    @role_required([UserRole.LIBRARIAN.value])
     def get(self):
         """ Lấy toàn bộ request, lấy theo status """
         status = request.args.get('status')
@@ -46,7 +48,12 @@ class Requests(Resource):
         req = dao_request.request_to_borrow_books(user_id, books, borrowing_method, number_of_requests_day,
                                                   purpose, name, phone, cccd, job, address, ward, province, city)
 
-        return (req, 201) if req else ('', 500)
+        if req:
+            user_email = get_email_by_userid(user_id)
+            send_request_email(user_email, name, books, purpose, status="PENDING")
+            return req, 201
+
+        return '', 500
 
     def delete(self):
         """ Xoá toàn bộ requests """
@@ -56,8 +63,8 @@ class Requests(Resource):
 @request_ns.route('/<int:request_id>')
 class RequestList(Resource):
     @request_ns.marshal_with(request_model)
-    # @jwt_required()
-    # @role_required([UserRole.LIBRARIAN.value])
+    @jwt_required()
+    @role_required([UserRole.LIBRARIAN.value])
     def get(self, request_id):
         """ Lấy request theo id """
         req = dao_request.get_request_by_id(request_id)
