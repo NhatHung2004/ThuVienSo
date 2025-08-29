@@ -29,7 +29,7 @@ def create_app():
     # được định nghĩa và đăng ký với Flask-RESTX Api instance.
     # Nếu không import, Flask-RESTX sẽ không "thấy" các Resource này.
     from app.api import (user_api, auth_api, book_api, category_api, comment_api,
-                         author_api, request_api, stats_api, cart_api)
+                         author_api, request_api, stats_api, cart_api, relative_api)
 
     # Import models để SQLAlchemy biết các model của bạn
     from app import models

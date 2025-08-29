@@ -6,7 +6,9 @@ from flask import request
 from app.dao import dao_request
 from datetime import datetime
 from app.models import UserRole
+from app.utils.send_email import send_request_email
 from app.utils.check_role import role_required
+from app.utils.get_email import get_email_by_userid
 
 
 @request_ns.route('/')
@@ -31,10 +33,32 @@ class Requests(Resource):
 
         user_id = int(data.get('user_id'))
         books = data.get('books')
+        borrowing_method = data.get('borrowing_method')
+        purpose = data.get('purpose')
+        name = data.get('name')
+        phone = data.get('phone')
+        cccd = data.get('cccd')
+        job = data.get('job')
+        address = data.get('address')
+        ward = data.get('ward')
+        province = data.get('province')
+        city = data.get('city')
+        number_of_requests_day = data.get('number_of_requests_day')
 
-        req = dao_request.request_to_borrow_books(user_id, books)
+        req = dao_request.request_to_borrow_books(user_id, books, borrowing_method, number_of_requests_day,
+                                                  purpose, name, phone, cccd, job, address, ward, province, city)
 
-        return (req, 201) if req else ('', 500)
+        if req:
+            user_email = get_email_by_userid(user_id)
+            send_request_email(user_email, name, books, purpose, status="PENDING")
+            return req, 201
+
+        return '', 500
+
+    def delete(self):
+        """ Xoá toàn bộ requests """
+        dao_request.delete_all_requests()
+        return {}, 204
 
 @request_ns.route('/<int:request_id>')
 class RequestList(Resource):
