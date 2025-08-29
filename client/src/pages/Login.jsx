@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { Apis } from "../configs/Apis";
 import cookie from "react-cookies";
 import { MyUserDispatchContext } from "../configs/MyContext";
+import { Eye, EyeOff } from "lucide-react"; // icon con mắt
 
 const Login = () => {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [pw, setPw] = useState("");
+  const [showPw, setShowPw] = useState(false); // 👈 state bật/tắt hiển thị mật khẩu
   const dispatch = useContext(MyUserDispatchContext);
 
   const login = async (e) => {
@@ -41,59 +43,68 @@ const Login = () => {
       console.log("Có lỗi xảy ra!!!");
     }
   };
+
   return (
-    <div class="flex flex-col justify-center sm:h-screen p-4">
-      <div class="max-w-md w-full mx-auto border border-gray-300 rounded-2xl p-8">
-        <div class="text-center mb-12">
+    <div className="flex flex-col justify-center sm:h-screen p-4">
+      <div className="max-w-md w-full mx-auto border border-gray-300 rounded-2xl p-8">
+        <div className="text-center mb-12">
           <a href="javascript:void(0)">
             <img
               src="https://ou.edu.vn/wp-content/uploads/2018/08/LOGO-TRUONGV21-12-2018-01-300x300.png"
               alt="logo"
-              class="w-35 inline-block"
+              className="w-35 inline-block"
             />
           </a>
         </div>
 
         <form>
-          <div class="space-y-6">
+          <div className="space-y-6">
             <div>
-              <label class="text-slate-900 text-sm font-medium mb-2 block">
+              <label className="text-slate-900 text-sm font-medium mb-2 block">
                 Username
               </label>
               <input
-                name="email"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                class="text-slate-900 bg-white border border-gray-300 w-full text-sm px-4 py-3 rounded-md outline-blue-500"
+                className="text-slate-900 bg-white border border-gray-300 w-full text-sm px-4 py-3 rounded-md outline-blue-500"
                 placeholder="Nhập username"
               />
             </div>
+
+            {/* Ô mật khẩu có icon 👁 */}
             <div>
-              <label class="text-slate-900 text-sm font-medium mb-2 block">
+              <label className="text-slate-900 text-sm font-medium mb-2 block">
                 Mật khẩu
               </label>
-              <input
-                name="password"
-                type="password"
-                value={pw}
-                onChange={(e) => setPw(e.target.value)}
-                class="text-slate-900 bg-white border border-gray-300 w-full text-sm px-4 py-3 rounded-md outline-blue-500"
-                placeholder="Nhập mật khẩu"
-              />
+              <div className="relative">
+                <input
+                  type={showPw ? "text" : "password"}
+                  value={pw}
+                  onChange={(e) => setPw(e.target.value)}
+                  className="text-slate-900 bg-white border border-gray-300 w-full text-sm px-4 py-3 rounded-md outline-blue-500 pr-10"
+                  placeholder="Nhập mật khẩu"
+                />
+                <span
+                  className="absolute right-3 top-3 cursor-pointer text-gray-500"
+                  onClick={() => setShowPw(!showPw)}
+                >
+                  {showPw ? <EyeOff size={20} /> : <Eye size={20} />}
+                </span>
+              </div>
             </div>
           </div>
 
-          <div class="mt-12">
+          <div className="mt-12">
             <button
               type="button"
               onClick={login}
-              class="w-full py-3 px-4 text-sm tracking-wider font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none cursor-pointer"
+              className="w-full py-3 px-4 text-sm tracking-wider font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none cursor-pointer"
             >
               Đăng nhập
             </button>
           </div>
-          <p class="text-slate-600 text-sm mt-6 text-center">
+          <p className="text-slate-600 text-sm mt-6 text-center">
             Chưa có tài khoản?{" "}
             <a
               href="#"

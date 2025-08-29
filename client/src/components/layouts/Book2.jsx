@@ -1,20 +1,20 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
-const Book2 = ({ book }) => {
+const Book2 = ({ book, relatedBooks }) => {
   const { title, image, quantity = 0 } = book;
 
   return (
     <Link
       to={`/book-detail/${book.id}`}
-      state={{ book }}
+      state={{ book, relatedBooks }} // Truyền cả book và relatedBooks
       className="mx-auto w-[190px] sm:w-[180px] md:w-[220px] lg:w-[240px]"
     >
       {/* Container bìa sách */}
       <div className="relative group shadow-md rounded-md overflow-hidden">
         <img
           src={image}
-          alt="Oranges Are Not the Only Fruit"
+          alt={title}
           className="w-full h-[240px] sm:h-[280px] md:h-[300px] lg:h-[360px] object-cover rounded-md"
         />
       </div>

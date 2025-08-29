@@ -24,6 +24,7 @@ import {
   Squares2X2Icon,
   MoonIcon,
   ArrowLeftOnRectangleIcon,
+  BellIcon,
 } from "@heroicons/react/24/outline";
 import {
   ChevronDownIcon,
@@ -35,6 +36,8 @@ import { Link } from "react-router-dom";
 import { MyUserContext, MyUserDispatchContext } from "../../configs/MyContext";
 import { Apis, authApis } from "../../configs/Apis";
 import { useNavigate } from "react-router-dom";
+import { ref, onValue, off, update } from "firebase/database";
+import { db } from "../../firebase"; // import firebase config
 
 const callsToAction = [
   { name: "Watch demo", href: "#", icon: PlayCircleIcon },
@@ -54,6 +57,12 @@ export default function Header() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showMobileUserMenu, setShowMobileUserMenu] = useState(false);
+
+  // Notification states
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
   const fetchBooks = async () => {
     try {
       const res = await authApis().get("/books/");
@@ -64,9 +73,104 @@ export default function Header() {
     }
   };
 
+  // Fetch notifications from Firebase
+  const fetchNotifications = () => {
+    if (!user?.id) return;
+
+    const notificationsRef = ref(db, `notifications/${user.id}`);
+
+    const unsubscribe = onValue(notificationsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const notificationsList = Object.keys(data).map((key) => ({
+          id: key,
+          ...data[key],
+        }));
+
+        // Sort by timestamp (newest first)
+        notificationsList.sort((a, b) => b.timestamp - a.timestamp);
+
+        setNotifications(notificationsList);
+
+        // Count unread notifications
+        const unreadCount = notificationsList.filter(
+          (notif) => !notif.read
+        ).length;
+        setUnreadCount(unreadCount);
+      } else {
+        setNotifications([]);
+        setUnreadCount(0);
+      }
+    });
+
+    return unsubscribe;
+  };
+
+  // Mark notification as read
+  const markAsRead = async (notificationId) => {
+    if (!user?.id) return;
+
+    try {
+      const notificationRef = ref(
+        db,
+        `notifications/${user.id}/${notificationId}`
+      );
+      await update(notificationRef, { read: true });
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+    }
+  };
+
+  // Mark all notifications as read
+  const markAllAsRead = async () => {
+    if (!user?.id || notifications.length === 0) return;
+
+    try {
+      const updates = {};
+      notifications.forEach((notif) => {
+        if (!notif.read) {
+          updates[`notifications/${user.id}/${notif.id}/read`] = true;
+        }
+      });
+
+      if (Object.keys(updates).length > 0) {
+        await update(ref(db), updates);
+      }
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+    }
+  };
+
+  // Format timestamp
+  const formatTimestamp = (timestamp) => {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (minutes < 1) return "Vừa xong";
+    if (minutes < 60) return `${minutes} phút trước`;
+    if (hours < 24) return `${hours} giờ trước`;
+    return `${days} ngày trước`;
+  };
+
   useEffect(() => {
     fetchBooks();
   }, []);
+
+  useEffect(() => {
+    let unsubscribe;
+    if (user?.id) {
+      unsubscribe = fetchNotifications();
+    }
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     if (searchTerm.trim() === "") {
@@ -188,7 +292,7 @@ export default function Header() {
                 onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
-                    e.preventDefault(); // Ngăn reload trang nếu nằm trong form
+                    e.preventDefault();
                     navigate(`/books?q=${encodeURIComponent(searchTerm)}`);
                     setSearchTerm("");
                   }
@@ -215,7 +319,7 @@ export default function Header() {
                   {filteredBooks.length > 0 ? (
                     filteredBooks.map((book) => (
                       <Link
-                        to={`/book-detail/${book.id}`} // hoặc route của bạn
+                        to={`/book-detail/${book.id}`}
                         key={book.id}
                         className="flex items-center px-4 py-2 hover:bg-gray-100 text-sm text-gray-800 gap-3"
                       >
@@ -239,7 +343,85 @@ export default function Header() {
             </div>
           </form>
         </div>
-        <div className="hidden lg:flex lg:flex-1 lg:justify-end relative">
+
+        <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:space-x-4">
+          {/* Notification Bell - only show when user is logged in */}
+          {user && (
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifications((prev) => !prev)}
+                className="relative p-2 text-gray-600 hover:text-gray-800 focus:outline-none"
+              >
+                <BellIcon className="w-6 h-6" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Thông báo
+                    </h3>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={markAllAsRead}
+                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                      >
+                        Đánh dấu tất cả đã đọc
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.length > 0 ? (
+                      notifications.map((notification) => (
+                        <div
+                          key={notification.id}
+                          className={`px-4 py-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
+                            !notification.read ? "bg-blue-50" : ""
+                          }`}
+                          onClick={() =>
+                            !notification.read && markAsRead(notification.id)
+                          }
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p
+                                className={`text-sm ${
+                                  !notification.read
+                                    ? "font-semibold text-gray-900"
+                                    : "text-gray-700"
+                                }`}
+                              >
+                                {notification.message}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {formatTimestamp(notification.timestamp)}
+                              </p>
+                            </div>
+                            {!notification.read && (
+                              <div className="w-2 h-2 bg-blue-500 rounded-full ml-2 mt-1"></div>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="px-4 py-8 text-center text-gray-500">
+                        <BellIcon className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                        <p>Không có thông báo nào</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* User Menu */}
           {!user ? (
             <Link to="/login" className="text-sm/6 font-semibold text-gray-900">
               Đăng nhập <span aria-hidden="true">&rarr;</span>
@@ -257,7 +439,7 @@ export default function Header() {
                   {/* Thông tin user */}
                   <div className="flex items-center gap-3 px-6 py-4">
                     <img
-                      src={user.avatar || "/default-avatar.png"} // fallback nếu user chưa có avatar
+                      src={user.avatar || "/default-avatar.png"}
                       alt="avatar"
                       className="w-12 h-12 rounded-full object-cover border border-gray-300"
                     />
@@ -269,8 +451,6 @@ export default function Header() {
                         Username: {" " + user.username || "Chưa có"}
                       </div>
                     </div>
-                    {/* Badge PRO nếu cần */}
-                    {/* <span className="bg-pink-100 text-pink-700 text-xs font-bold px-2 py-1 rounded-full ml-auto">PRO</span> */}
                   </div>
                   <hr className="my-2 border-gray-200" />
                   {/* Các chức năng */}
@@ -285,7 +465,6 @@ export default function Header() {
                   <div className="flex items-center gap-3 px-6 py-3 w-full hover:bg-gray-100 text-gray-800 text-base">
                     <MoonIcon className="w-5 h-5" />
                     <span>Chế độ tối</span>
-                    {/* Switch dark mode nếu muốn */}
                     <label className="ml-auto inline-flex items-center cursor-pointer">
                       <input type="checkbox" className="sr-only peer" />
                       <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:bg-blue-600 transition-all"></div>
@@ -310,6 +489,8 @@ export default function Header() {
           )}
         </div>
       </nav>
+
+      {/* Mobile Menu */}
       <Dialog
         open={mobileMenuOpen}
         onClose={setMobileMenuOpen}
