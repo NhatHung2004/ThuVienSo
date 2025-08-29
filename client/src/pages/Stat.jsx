@@ -19,6 +19,7 @@ import {
   Eye,
   Download,
   Filter,
+  BanknoteArrowUp,
 } from "lucide-react";
 import {
   BarChart,
@@ -138,27 +139,13 @@ const Stat = () => {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar>
+        <SidebarItem icon={<Receipt />} text="Quản lý sách" to="/book-manage" />
         <SidebarItem
-          icon={<Package className="h-5 w-5" />}
-          text="Quản lý sách"
-          to="/book-manage"
-        />
-        <SidebarItem
-          icon={<Receipt className="h-5 w-5" />}
+          icon={<BanknoteArrowUp />}
           text="Duyệt mượn"
-          to="/managements/invoice-manage"
+          to="/book-request"
         />
-        <SidebarItem
-          icon={<ClipboardList className="h-5 w-5" />}
-          text="Lịch sử mượn"
-          to="/history-librarian"
-        />
-        <SidebarItem
-          icon={<BarChart2 className="h-5 w-5" />}
-          text="Thống kê"
-          to="/managements/survey-statistics"
-          active={true}
-        />
+        <SidebarItem icon={<BarChart2 />} text="Thống kê" to="/stat" />
       </Sidebar>
 
       <div className="flex-1 p-6">
