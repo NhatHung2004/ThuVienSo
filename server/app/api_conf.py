@@ -115,7 +115,27 @@ book_frequency_statistics_model = api.model('BookFrequencyStatistics', {
     'book_id': fields.Integer(readOnly=True),
     'book_title': fields.String(required=True),
     'total_borrow_quantity': fields.Integer(readOnly=True),
+    'number_of_book_borrows': fields.Integer(readOnly=True),
+})
+
+general_stats_model = api.model('GeneralStats', {
+    'total_of_books': fields.Integer(readOnly=True),
+    'number_of_users': fields.Integer(readOnly=True),
+    'average_rating': fields.Float(readOnly=True),
     'number_of_borrows': fields.Integer(readOnly=True),
+
+})
+
+category_stats_model = api.model('CategoryStats', {
+    'cate_id': fields.Integer(readOnly=True),
+    'cate_name': fields.String(readOnly=True),
+    'total_of_books': fields.Integer(readOnly=True),
+})
+
+book_borrowing_stats_model = api.model('BookBorrowStats', {
+    'book_id': fields.Integer(readOnly=True),
+    'book_title': fields.String(readOnly=True),
+    'total_borrow_quantity': fields.Integer(readOnly=True),
 })
 
 cart_model = api.model('Cart', {

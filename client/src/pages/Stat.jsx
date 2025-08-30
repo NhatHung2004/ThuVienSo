@@ -38,6 +38,7 @@ import {
   Area,
 } from "recharts";
 import Sidebar, { SidebarItem } from "../components/layouts/Sidebar";
+import { Apis } from "../configs/Apis";
 
 const mockData = {
   totalBooks: 12450,
@@ -57,20 +58,6 @@ const mockData = {
     { month: "T10", loans: 389, returns: 401 },
     { month: "T11", loans: 356, returns: 378 },
     { month: "T12", loans: 234, returns: 245 },
-  ],
-  categoryStats: [
-    { name: "Văn học", value: 35, books: 4358, color: "#8B5CF6" },
-    { name: "Khoa học", value: 22, books: 2739, color: "#06B6D4" },
-    { name: "Lịch sử", value: 18, books: 2241, color: "#10B981" },
-    { name: "Giáo khoa", value: 15, books: 1868, color: "#F59E0B" },
-    { name: "Nghệ thuật", value: 10, books: 1245, color: "#EF4444" },
-  ],
-  popularBooks: [
-    { title: "Dế Mèn Phiêu Lưu Ký", author: "Tô Hoài", loans: 156 },
-    { title: "Tắt Đèn", author: "Ngô Tất Tố", loans: 142 },
-    { title: "Chí Phèo", author: "Nam Cao", loans: 138 },
-    { title: "Số Đỏ", author: "Vũ Trọng Phụng", loans: 124 },
-    { title: "Lão Hạc", author: "Nam Cao", loans: 118 },
   ],
   dailyVisitors: [
     { day: "T2", visitors: 245 },
@@ -135,6 +122,76 @@ const StatCard = ({
 const Stat = () => {
   const [timeRange, setTimeRange] = useState("12months");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [isLoading, setIsLoading] = useState(true);
+  const [categoryStats, setCategoryStats] = useState([]);
+  const [popularBooks, setPopularBooks] = useState([]);
+
+  // Màu sắc cho các thể loại
+  const colors = [
+    "#8B5CF6",
+    "#06B6D4",
+    "#10B981",
+    "#F59E0B",
+    "#EF4444",
+    "#F97316",
+    "#EC4899",
+    "#6366F1",
+  ];
+
+  const fetchCategoryStat = async () => {
+    try {
+      setIsLoading(true);
+      const res = await Apis.get("/stats/category_stats");
+
+      // Tính tổng số sách để tính phần trăm
+      const totalBooks = res.data.reduce(
+        (sum, item) => sum + item.total_of_books,
+        0
+      );
+
+      // Chuyển đổi dữ liệu API thành format cần thiết
+      const formattedData = res.data.map((item, index) => ({
+        name: item.cate_name,
+        value: Math.round((item.total_of_books / totalBooks) * 100), // Tính phần trăm
+        books: item.total_of_books,
+        color: colors[index % colors.length], // Chọn màu từ mảng colors
+        cate_id: item.cate_id,
+      }));
+
+      setCategoryStats(formattedData);
+      console.log("Formatted category stats:", formattedData);
+    } catch (err) {
+      console.log("Error fetching category stats:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchBookBorrowStat = async () => {
+    try {
+      const res = await Apis.get("/stats/book_borrowing_stats");
+
+      // Sắp xếp theo số lượt mượn giảm dần và lấy top 5
+      const sortedBooks = res.data
+        .sort((a, b) => b.total_borrow_quantity - a.total_borrow_quantity)
+        .slice(0, 5)
+        .map((book) => ({
+          title: book.book_title,
+          loans: book.total_borrow_quantity,
+          book_id: book.book_id,
+        }));
+
+      setPopularBooks(sortedBooks);
+      console.log("Popular books:", sortedBooks);
+    } catch (err) {
+      console.log("Error fetching book borrow stats:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategoryStat();
+    fetchBookBorrowStat();
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -254,24 +311,39 @@ const Stat = () => {
               </h3>
               <Eye className="h-5 w-5 text-gray-400" />
             </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={mockData.categoryStats}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}%`}
-                >
-                  {mockData.categoryStats.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            {isLoading ? (
+              <div className="flex items-center justify-center h-[300px]">
+                <div className="text-gray-500">Đang tải dữ liệu...</div>
+              </div>
+            ) : categoryStats.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={categoryStats}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, value }) => `${name}: ${value}%`}
+                  >
+                    {categoryStats.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value, name, props) => [
+                      `${value}% (${props.payload.books} sách)`,
+                      props.payload.name,
+                    ]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px]">
+                <div className="text-gray-500">Không có dữ liệu</div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -283,22 +355,27 @@ const Stat = () => {
               Sách được mượn nhiều nhất
             </h3>
             <div className="space-y-3">
-              {mockData.popularBooks.map((book, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                >
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900 text-sm">
-                      {book.title}
-                    </p>
-                    <p className="text-gray-600 text-xs">{book.author}</p>
+              {popularBooks.length > 0 ? (
+                popularBooks.map((book, index) => (
+                  <div
+                    key={book.book_id}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                  >
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900 text-sm">
+                        {book.title}
+                      </p>
+                    </div>
+                    <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                      {book.loans} lượt
+                    </span>
                   </div>
-                  <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                    {book.loans} lượt
-                  </span>
+                ))
+              ) : (
+                <div className="text-center text-gray-500 py-4">
+                  Đang tải dữ liệu...
                 </div>
-              ))}
+              )}
             </div>
           </div>
 

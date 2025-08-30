@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 const BookManage = () => {
   const [loading, setLoading] = useState(false);
   const [cates, setCates] = useState([]);
+  const [authors, setAuthors] = useState([]); // Thêm danh sách tác giả
   const [books, setBooks] = useState([]);
   const [filteredBooks, setFilteredBooks] = useState([]);
   const [name, setName] = useState("");
@@ -28,6 +29,12 @@ const BookManage = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
+
+  // States cho tác giả và thể loại
+  const [authorMode, setAuthorMode] = useState("select"); // "select" hoặc "new"
+  const [categoryMode, setCategoryMode] = useState("select"); // "select" hoặc "new"
+  const [newAuthor, setNewAuthor] = useState("");
+  const [newCategory, setNewCategory] = useState("");
 
   // States cho tìm kiếm và lọc
   const [searchTerm, setSearchTerm] = useState("");
@@ -43,6 +50,7 @@ const BookManage = () => {
       const res = await Apis.get("/books/");
       setBooks(res.data);
       setFilteredBooks(res.data);
+
       console.log(res.data);
     } catch {
       setLoading(false);
@@ -58,6 +66,21 @@ const BookManage = () => {
       const res = await Apis.get("/categories/");
       setCates(res.data);
       if (res.data.length > 0) setSelectedCategory(res.data[0].name);
+      console.log(res.data);
+    } catch {
+      setLoading(false);
+      console.log("Có lỗi khi tải danh sách sách phân loại");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAuthor = async () => {
+    setLoading(true);
+    try {
+      const res = await Apis.get("/authors/");
+      setAuthors(res.data);
+      console.log(res.data);
     } catch {
       setLoading(false);
       console.log("Có lỗi khi tải danh sách sách phân loại");
@@ -121,6 +144,7 @@ const BookManage = () => {
   // Gọi filterBooks khi có thay đổi trong tìm kiếm/lọc
   useEffect(() => {
     filterBooks();
+    fetchAuthor();
   }, [searchTerm, filterCategory, filterStatus, sortBy, books]);
 
   const addBook = async () => {
@@ -131,8 +155,17 @@ const BookManage = () => {
       formData.append("description", description);
       formData.append("image", image); // File object
       formData.append("quantity", parseInt(quantity));
-      formData.append("author", author);
-      formData.append("category", selectedCategory);
+
+      // Xử lý tác giả
+      const finalAuthor = authorMode === "new" ? newAuthor : author;
+      formData.append("author", finalAuthor);
+
+      console.log("Thể loại sác:", selectedCategory);
+
+      // Xử lý thể loại
+      const finalCategory =
+        categoryMode === "new" ? newCategory : selectedCategory;
+      formData.append("category", finalCategory);
 
       const res = await authApis().post("/books/", formData);
       alert("Thêm sách thành công:", res.data);
@@ -150,6 +183,30 @@ const BookManage = () => {
     }
   };
 
+  const addCate = async () => {
+    if (!newCategory.trim()) {
+      alert("Vui lòng nhập tên thể loại mới!");
+      return;
+    }
+    try {
+      setLoading(true);
+      const res = await authApis().post("/categories/", { name: newCategory });
+      alert("Thêm thể loại thành công");
+      // Cập nhật danh sách categories
+      setCates([...cates, res.data]);
+      // Chuyển về mode select và chọn category mới
+      setCategoryMode("select");
+      setSelectedCategory(res.data.name);
+      // Reset input newCategory
+      setNewCategory("");
+    } catch (err) {
+      console.log(err);
+      alert("Có lỗi khi thêm thể loại!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const resetForm = () => {
     setName("");
     setDescription("");
@@ -157,6 +214,10 @@ const BookManage = () => {
     setPreviewUrl(null);
     setQuantity("");
     setAuthor("");
+    setNewAuthor("");
+    setNewCategory("");
+    setAuthorMode("select");
+    setCategoryMode("select");
     if (cates.length > 0) setSelectedCategory(cates[0].name);
   };
 
@@ -174,134 +235,288 @@ const BookManage = () => {
     }
   };
 
+  // Kiểm tra validation
+  const isFormValid = () => {
+    const hasName = name.trim();
+    const hasQuantity = quantity.trim();
+    const hasAuthor = authorMode === "new" ? newAuthor.trim() : author.trim();
+    const hasCategory =
+      categoryMode === "new" ? newCategory.trim() : selectedCategory;
+
+    return hasName && hasQuantity && hasAuthor && hasCategory;
+  };
+
   return (
     <div className="flex h-screen">
       {/* Dialog thêm sách */}
       {openDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
-            <div className="flex justify-between items-center border-b p-4">
-              <h3 className="text-lg font-semibold">Thêm sách mới</h3>
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-30 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 border border-gray-100">
+            <div className="flex justify-between items-center border-b border-gray-200 px-8 py-6 bg-gray-50">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-800">
+                  📚 Thêm sách mới
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  Điền thông tin chi tiết để thêm sách vào thư viện
+                </p>
+              </div>
               <button
                 onClick={() => setOpenDialog(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg p-2 transition-all"
               >
-                <X size={20} />
+                <X size={24} />
               </button>
             </div>
 
-            <div className="p-6 max-h-[70vh] overflow-y-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tên sách <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    placeholder="Nhập tên sách"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tác giả <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={author}
-                    onChange={(e) => setAuthor(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    placeholder="Nhập tên tác giả"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Thể loại <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  >
-                    {cates.map((cate) => (
-                      <option key={cate.id} value={cate.id}>
-                        {cate.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Số lượng <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    placeholder="Nhập số lượng"
-                    min="0"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Mô tả
-                  </label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows="3"
-                    className="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    placeholder="Nhập mô tả sách"
-                  ></textarea>
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Hình ảnh sách
-                  </label>
-                  <input
-                    type="file"
-                    onChange={handleImageChange}
-                    className="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  />
-                  {previewUrl && (
-                    <div className="mt-2">
-                      <img
-                        src={previewUrl}
-                        alt="Preview"
-                        className="max-h-40 rounded border"
+            <div className="p-8 max-h-[75vh] overflow-y-auto">
+              <div className="space-y-6">
+                {/* Section 1: Thông tin cơ bản */}
+                <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                  <h4 className="text-base font-semibold text-gray-800 mb-4 flex items-center">
+                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-3">
+                      <span className="text-gray-600 font-bold text-sm">1</span>
+                    </div>
+                    Thông tin cơ bản
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Tên sách <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-colors"
+                        placeholder="Nhập tên sách"
                       />
                     </div>
-                  )}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Số lượng <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        value={quantity}
+                        onChange={(e) => setQuantity(e.target.value)}
+                        className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-colors"
+                        placeholder="Nhập số lượng"
+                        min="0"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 2: Tác giả */}
+                <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                  <h4 className="text-base font-semibold text-gray-800 mb-4 flex items-center">
+                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-3">
+                      <span className="text-gray-600 font-bold text-sm">2</span>
+                    </div>
+                    Thông tin tác giả
+                  </h4>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Tác giả <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex gap-2 mb-3">
+                      <button
+                        type="button"
+                        onClick={() => setAuthorMode("select")}
+                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                          authorMode === "select"
+                            ? "bg-blue-500 text-white shadow-md"
+                            : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        📋 Chọn có sẵn
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAuthorMode("new")}
+                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                          authorMode === "new"
+                            ? "bg-blue-500 text-white shadow-md"
+                            : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        ➕ Thêm mới
+                      </button>
+                    </div>
+                    {authorMode === "select" ? (
+                      <select
+                        value={author}
+                        onChange={(e) => setAuthor(e.target.value)}
+                        className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-colors bg-white"
+                      >
+                        <option value="">-- Chọn tác giả --</option>
+                        {authors.map((authorItem, index) => (
+                          <option key={index} value={authorItem.name}>
+                            {authorItem.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={newAuthor}
+                        onChange={(e) => setNewAuthor(e.target.value)}
+                        className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-colors"
+                        placeholder="Nhập tên tác giả mới"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* Section 3: Thể loại */}
+                <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                  <h4 className="text-base font-semibold text-gray-800 mb-4 flex items-center">
+                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-3">
+                      <span className="text-gray-600 font-bold text-sm">3</span>
+                    </div>
+                    Phân loại sách
+                  </h4>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Thể loại <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex gap-2 mb-3">
+                      <button
+                        type="button"
+                        onClick={() => setCategoryMode("select")}
+                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                          categoryMode === "select"
+                            ? "bg-blue-500 text-white shadow-md"
+                            : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        📚 Chọn có sẵn
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCategoryMode("new")}
+                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                          categoryMode === "new"
+                            ? "bg-blue-500 text-white shadow-md"
+                            : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        🆕 Tạo mới
+                      </button>
+                    </div>
+                    {categoryMode === "select" ? (
+                      <select
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-colors bg-white"
+                      >
+                        <option value="">-- Chọn thể loại --</option>
+                        {cates.map((cate) => (
+                          <option key={cate.id} value={cate.name}>
+                            {cate.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="space-y-3">
+                        <input
+                          type="text"
+                          value={newCategory}
+                          onChange={(e) => setNewCategory(e.target.value)}
+                          className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-colors"
+                          placeholder="Nhập tên thể loại mới"
+                        />
+                        <button
+                          onClick={addCate}
+                          disabled={loading || !newCategory.trim()}
+                          className={`w-full px-4 py-2 rounded-lg font-medium transition-all ${
+                            loading || !newCategory.trim()
+                              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                              : "bg-green-600 text-white hover:bg-green-700 shadow-lg"
+                          }`}
+                        >
+                          {loading ? "Đang thêm..." : "Thêm thể loại mới"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Section 4: Mô tả & Hình ảnh */}
+                <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                  <h4 className="text-base font-semibold text-gray-800 mb-4 flex items-center">
+                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-3">
+                      <span className="text-gray-600 font-bold text-sm">4</span>
+                    </div>
+                    Mô tả & Hình ảnh
+                  </h4>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Mô tả sách
+                      </label>
+                      <textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        rows="4"
+                        className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-colors resize-none"
+                        placeholder="Nhập mô tả chi tiết về cuốn sách..."
+                      ></textarea>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Hình ảnh bìa sách
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          onChange={handleImageChange}
+                          className="w-full px-3 py-3 border-2 border-dashed border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+                          accept="image/*"
+                        />
+                      </div>
+                      {previewUrl && (
+                        <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
+                          <p className="text-sm text-gray-600 mb-2">
+                            Xem trước:
+                          </p>
+                          <img
+                            src={previewUrl}
+                            alt="Preview"
+                            className="max-h-48 rounded-lg border border-gray-200 shadow-sm mx-auto"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="border-t p-4 flex justify-end gap-3">
-              <button
-                onClick={() => setOpenDialog(false)}
-                className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={addBook}
-                disabled={loading || !name || !author || !quantity}
-                className={`px-4 py-2 rounded text-white ${
-                  loading || !name || !author || !quantity
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-[#2563eb] hover:bg-[#1d4ed8]"
-                }`}
-              >
-                {loading ? "Đang thêm..." : "Thêm sách"}
-              </button>
+            <div className="border-t bg-gray-50 px-8 py-6 flex justify-between items-center">
+              <div className="text-sm text-gray-600">
+                <span className="text-red-500">*</span> Các trường bắt buộc
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setOpenDialog(false)}
+                  className="px-6 py-2.5 border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors font-medium"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  onClick={addBook}
+                  disabled={loading || !isFormValid()}
+                  className={`px-8 py-2.5 rounded-lg font-medium transition-all ${
+                    loading || !isFormValid()
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl"
+                  }`}
+                >
+                  {loading ? "Đang thêm..." : "Thêm sách"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
