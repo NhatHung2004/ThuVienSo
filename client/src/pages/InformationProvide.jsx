@@ -64,7 +64,10 @@ const InformationProvide = () => {
           book_id: item.id,
           quantity: item.quantity,
         })),
-        borrowing_method: formData.receiveMethod,
+        borrowing_method:
+          formData.receiveMethod === "Nhận tại thư viện"
+            ? "DIRECT"
+            : "DELIVERY",
         purpose: formData.purpose,
         name: formData.fullName,
         phone: formData.phone,
@@ -72,16 +75,18 @@ const InformationProvide = () => {
         job: formData.profession,
         address: formData.address,
         ward: formData.ward,
-        province: formData.district, // Giả sử province là district
+        province: formData.city, // đúng theo backend
         city: formData.city,
-        number_of_requests_day: parseInt(formData.borrowDays, 10),
+        number_of_requests_day: 1, // backend dường như expect 1
       };
 
+      console.log("Dữ liệu trước khi gửi đi", payload);
+
       try {
-        const res = await authApis().post("/requests/", payload);
+        const res = await authApis().post("/requests", payload);
         console.log("Request thành công: ", res.data);
         for (const book of selectedBooks) {
-          await authApis().patch(`/carts/`, {
+          await authApis().patch(`/carts`, {
             cart_id: selectedCartId,
             book_id: book.id,
             quantity: book.quantity,

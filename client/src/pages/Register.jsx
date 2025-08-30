@@ -132,12 +132,14 @@ const RegistartionForm = () => {
                     <circle cx="8.5" cy="7" r="4" />
                     <path d="M20 8v6M23 11h-6" />
                   </svg>
-                  <span className="ml-3">Sign Up</span>
+                  <span className="ml-3">Đăng ký</span>
                 </button>
                 <p className="mt-6 text-xs text-gray-600 text-center">
-                  Already have an account?{" "}
+                  Đã có tài khoản?{" "}
                   <Link to={"/login"}>
-                    <span className="text-blue-900 font-semibold">Sign in</span>
+                    <span className="text-blue-900 font-semibold">
+                      Đăng nhập
+                    </span>
                   </Link>
                 </p>
               </div>

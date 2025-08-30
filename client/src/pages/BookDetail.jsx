@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import { Apis, authApis } from "../configs/Apis";
 import { MyUserContext } from "../configs/MyContext";
 
@@ -10,33 +10,30 @@ const BookDetail = () => {
   const [author, setAuthor] = useState(null);
   const user = useContext(MyUserContext);
   const navigate = useNavigate();
-
+  const location = useLocation();
+  const [relatedBooks, setRelatedBooks] = useState(
+    location.state?.relatedBooks || []
+  );
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewContent, setReviewContent] = useState("");
 
-  // Lấy book + author cùng lúc
   const fetchBookAndAuthor = async () => {
     try {
-      // Lấy dữ liệu sách
       const bookRes = await Apis.get(`/books/${bookId}`);
       setBook(bookRes.data);
 
-      // Lấy tác giả và bình luận song song
       const [authorRes, commentRes] = await Promise.all([
         Apis.get(`/authors/${bookRes.data.author_id}`),
         Apis.get(`/books/${bookId}/comments`).catch((err) => {
-          // Nếu API trả 404 thì coi như không có bình luận
           if (err.response?.status === 404) return { status: 404, data: [] };
-          throw err; // các lỗi khác ném ra để catch bên ngoài
+          throw err;
         }),
       ]);
 
       setAuthor(authorRes.data);
 
       let commentsWithUser = [];
-
-      // Nếu có bình luận thì mới xử lý map
       if (commentRes.status === 200 && Array.isArray(commentRes.data)) {
         commentsWithUser = await Promise.all(
           commentRes.data.map(async (cmt) => {
@@ -52,10 +49,7 @@ const BookDetail = () => {
             }
           })
         );
-      } else {
-        console.warn("Không có bình luận nào.");
       }
-
       setComments(commentsWithUser);
     } catch (err) {
       console.error("Lỗi khi load dữ liệu:", err);
@@ -99,7 +93,7 @@ const BookDetail = () => {
       setShowReviewForm(false);
       setReviewRating(0);
       setReviewContent("");
-      fetchBookAndAuthor(); // Refresh lại comment + rating
+      fetchBookAndAuthor();
     } catch (err) {
       console.error(err);
       alert("Thêm bình luận thất bại!");
@@ -125,7 +119,6 @@ const BookDetail = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-      {/* Header */}
       <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
         <button
           onClick={() => navigate(-1)}
@@ -153,13 +146,10 @@ const BookDetail = () => {
 
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-          {/* Main Content */}
           <div className="xl:col-span-3">
-            {/* Book Info Card */}
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden mb-8">
               <div className="p-6 md:p-8">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  {/* Book Image */}
                   <div className="lg:col-span-1">
                     <div className="relative group">
                       <img
@@ -170,8 +160,6 @@ const BookDetail = () => {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     </div>
                   </div>
-
-                  {/* Book Details */}
                   <div className="lg:col-span-2 space-y-6">
                     <div>
                       <h1 className="text-3xl md:text-[33px] font-bold text-gray-900 mb-2 leading-tight">
@@ -180,8 +168,6 @@ const BookDetail = () => {
                       <p className="text-xl text-blue-600 font-medium mb-4">
                         Bởi {author.name}
                       </p>
-
-                      {/* Rating */}
                       <div className="flex items-center gap-2 mb-6">
                         <div className="flex">
                           {[...Array(5)].map((_, i) => (
@@ -195,7 +181,7 @@ const BookDetail = () => {
                               fill="currentColor"
                               viewBox="0 0 20 20"
                             >
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3 .921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784 .57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81 .588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                             </svg>
                           ))}
                         </div>
@@ -208,8 +194,6 @@ const BookDetail = () => {
                           ({comments.length} đánh giá)
                         </span>
                       </div>
-
-                      {/* Action Buttons */}
                       <div className="flex flex-col sm:flex-row gap-4 mb-6">
                         <button
                           onClick={addCart}
@@ -237,8 +221,6 @@ const BookDetail = () => {
                         </button>
                       </div>
                     </div>
-
-                    {/* Description */}
                     <div className="bg-gray-50 rounded-xl p-6">
                       <h3 className="text-xl font-bold mb-3 text-gray-900">
                         Mô tả
@@ -247,8 +229,6 @@ const BookDetail = () => {
                         {book.description}
                       </p>
                     </div>
-
-                    {/* Book Info Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="bg-blue-50 rounded-lg p-4 text-center">
                         <div className="text-blue-600 font-semibold text-sm mb-1">
@@ -280,7 +260,6 @@ const BookDetail = () => {
               </div>
             </div>
 
-            {/* Reviews Section */}
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
               <div className="p-6 md:p-8">
                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
@@ -321,13 +300,11 @@ const BookDetail = () => {
                   )}
                 </div>
 
-                {/* Review Form */}
                 {showReviewForm && (
                   <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-blue-100 rounded-2xl border border-blue-100">
                     <h4 className="text-xl font-bold mb-6 text-gray-900">
                       Chia sẻ đánh giá của bạn
                     </h4>
-
                     <div className="mb-6">
                       <label className="block text-sm font-semibold text-gray-700 mb-3">
                         Đánh giá của bạn *
@@ -348,7 +325,7 @@ const BookDetail = () => {
                               fill="currentColor"
                               viewBox="0 0 20 20"
                             >
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3 .921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784 .57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81 .588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                             </svg>
                           </button>
                         ))}
@@ -359,7 +336,6 @@ const BookDetail = () => {
                         </span>
                       </div>
                     </div>
-
                     <div className="mb-6">
                       <label className="block text-sm font-semibold text-gray-700 mb-3">
                         Nội dung đánh giá *
@@ -372,7 +348,6 @@ const BookDetail = () => {
                         onChange={(e) => setReviewContent(e.target.value)}
                       />
                     </div>
-
                     <button
                       onClick={addComment}
                       disabled={
@@ -398,7 +373,6 @@ const BookDetail = () => {
                   </div>
                 )}
 
-                {/* Comments List */}
                 <div className="space-y-6">
                   {comments.length > 0 ? (
                     comments.map((cmt, index) => (
@@ -434,7 +408,7 @@ const BookDetail = () => {
                                       fill="currentColor"
                                       viewBox="0 0 20 20"
                                     >
-                                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3 .921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784 .57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81 .588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                     </svg>
                                   ))}
                                 </div>
@@ -482,41 +456,64 @@ const BookDetail = () => {
             </div>
           </div>
 
-          {/* Sidebar - Related Books */}
           <div className="xl:col-span-1">
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 sticky top-24">
               <h3 className="text-xl font-bold mb-6 text-gray-900">
                 Sách liên quan
               </h3>
               <div className="space-y-4">
-                {[1, 2, 3, 4].map((_, idx) => (
-                  <div
-                    key={idx}
-                    className="flex gap-4 p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200 cursor-pointer group"
-                  >
-                    <div className="w-16 h-20 bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex-shrink-0 group-hover:shadow-md transition-shadow duration-200" />
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-gray-900 text-sm mb-1 truncate group-hover:text-blue-600 transition-colors duration-200">
-                        Tiếng Việt {idx + 1}
-                      </h4>
-                      <p className="text-xs text-gray-500 mb-2 truncate">
-                        Nguyễn Văn A
-                      </p>
-                      <div className="flex items-center">
-                        <svg
-                          className="w-4 h-4 text-yellow-400 mr-1"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                        <span className="text-xs text-gray-600 font-medium">
-                          4.{6 + idx}
-                        </span>
+                {Array.isArray(relatedBooks) && relatedBooks.length > 0 ? (
+                  relatedBooks.map((relatedBook) => (
+                    <Link
+                      key={relatedBook.id}
+                      to={`/book-detail/${relatedBook.id}`}
+                      state={{
+                        book: relatedBook,
+                        relatedBooks: relatedBooks
+                          .filter(
+                            (b) =>
+                              b.id !== relatedBook.id &&
+                              (b.author_id === relatedBook.author_id ||
+                                b.category_id === relatedBook.category_id)
+                          )
+                          .slice(0, 4),
+                      }}
+                      className="flex gap-4 p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200 cursor-pointer group"
+                    >
+                      <img
+                        src={relatedBook.image}
+                        alt={relatedBook.title}
+                        className="w-16 h-20 object-cover rounded-lg flex-shrink-0 group-hover:shadow-md transition-shadow duration-200"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-gray-900 text-sm mb-1 truncate group-hover:text-blue-600 transition-colors duration-200">
+                          {relatedBook.title}
+                        </h4>
+                        <p className="text-xs text-gray-500 mb-2 truncate">
+                          {relatedBook.author?.name || "Unknown Author"}
+                        </p>
+                        <div className="flex items-center">
+                          <svg
+                            className="w-4 h-4 text-yellow-400 mr-1"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3 .921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784 .57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81 .588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                          <span className="text-xs text-gray-600 font-medium">
+                            {relatedBook.average_rating
+                              ? relatedBook.average_rating.toFixed(1)
+                              : "Chưa có đánh giá"}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    </Link>
+                  ))
+                ) : (
+                  <p className="text-gray-500 text-sm">
+                    Không có sách liên quan nào.
+                  </p>
+                )}
               </div>
             </div>
           </div>
