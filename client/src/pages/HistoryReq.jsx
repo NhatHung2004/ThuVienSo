@@ -1,12 +1,11 @@
 import React, { useContext, useEffect, useState } from "react";
 import {
   FaBookOpen,
-  FaUser,
-  FaCalendarAlt,
-  FaClock,
   FaTimes,
+  FaChevronLeft,
+  FaChevronRight,
 } from "react-icons/fa";
-import { Apis, authApis } from "../configs/Apis";
+import { authApis } from "../configs/Apis";
 import { MyUserContext } from "../configs/MyContext";
 
 const statusStyles = {
@@ -34,29 +33,26 @@ const HistoryReq = () => {
   const [requestBooks, setRequestBooks] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [loadingBooks, setLoadingBooks] = useState(false);
+  const [returningBook, setReturningBook] = useState(false);
   const user = useContext(MyUserContext);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5; // hiển thị 5 yêu cầu / trang
 
   const fetchHistoryRequest = async () => {
     try {
       setLoading(true);
-      console.log(user.id);
       const res = await authApis().get(`users/${user.id}/requests`);
-      console.log("API Response:", res.data);
-
-      // Kiểm tra xem res.data có phải là array không
       if (Array.isArray(res.data)) {
         setRequests(res.data);
       } else if (res.data && typeof res.data === "object") {
-        // Nếu API trả về một object, có thể là object single request
-        // Hoặc object chứa array requests
         if (res.data.requests && Array.isArray(res.data.requests)) {
           setRequests(res.data.requests);
         } else {
-          // Nếu là một request object đơn lẻ, wrap nó trong array
           setRequests([res.data]);
         }
       } else {
-        console.log("API response không đúng định dạng:", res.data);
         setRequests([]);
       }
     } catch (err) {
@@ -77,6 +73,34 @@ const HistoryReq = () => {
     }
   };
 
+  const handleReturnBooks = async () => {
+    if (!selectedRequest) return;
+
+    try {
+      setReturningBook(true);
+      const res = await authApis().patch(
+        `/requests/${selectedRequest.request_id}/returned`
+      );
+
+      if (res.status === 200) {
+        setRequests((prevRequests) =>
+          prevRequests.map((req) =>
+            req.request_id === selectedRequest.request_id
+              ? { ...req, status: "RETURNED" }
+              : req
+          )
+        );
+        setSelectedRequest((prev) => ({ ...prev, status: "RETURNED" }));
+        alert("Trả sách thành công!");
+      }
+    } catch (err) {
+      console.log("Lỗi khi trả sách:", err);
+      alert("Có lỗi xảy ra khi trả sách. Vui lòng thử lại!");
+    } finally {
+      setReturningBook(false);
+    }
+  };
+
   const handleViewDetails = async (request) => {
     setSelectedRequest(request);
     setShowModal(true);
@@ -84,7 +108,6 @@ const HistoryReq = () => {
     setRequestBooks([]);
 
     try {
-      // Lấy thông tin chi tiết từng cuốn sách
       const bookPromises = request.books.map(async (bookItem) => {
         const bookData = await fetchBookByBookId(bookItem.book_id);
         return {
@@ -115,21 +138,66 @@ const HistoryReq = () => {
     }
   }, [user]);
 
+  // Reset trang khi tìm kiếm hoặc thay đổi filter
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter]);
+
   const filteredRequests = requests.filter((request) => {
     const matchesStatus =
       statusFilter === "Tất cả" || request.status === statusFilter;
-
-    // Tìm kiếm theo request_id hoặc có thể mở rộng thêm
     const matchesSearch =
       request.request_id.toString().includes(search) ||
       request.status.toLowerCase().includes(search.toLowerCase());
-
     return matchesSearch && matchesStatus;
   });
+
+  // đảm bảo currentPage không vượt quá totalPages khi filteredRequests thay đổi
+  useEffect(() => {
+    const totalPages = Math.max(
+      1,
+      Math.ceil(filteredRequests.length / itemsPerPage)
+    );
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [filteredRequests, currentPage]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredRequests.length / itemsPerPage)
+  );
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedRequests = filteredRequests.slice(startIndex, endIndex);
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("vi-VN");
   };
+
+  const getReturnDate = (request) => {
+    if (!request?.request_date || !request?.number_of_requests_day) return "";
+    return new Date(
+      new Date(request.request_date).getTime() +
+        request.number_of_requests_day * 24 * 60 * 60 * 1000
+    );
+  };
+
+  const getReturnStatus = (request) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // reset giờ về 0:0 để so sánh ngày
+    const dueDate = getReturnDate(request);
+    if (!dueDate) return "";
+    dueDate.setHours(0, 0, 0, 0); // reset giờ về 0
+
+    if (request.status === "RETURNED") {
+      return formatDate(new Date());
+    } else if (today > dueDate) {
+      // chỉ khi ngày hôm nay > hạn trả mới là trễ
+      return "Trễ hạn";
+    } else {
+      return "Chưa trả";
+    }
+  };
+
   return (
     <div className="w-full min-h-screen bg-gray-50 py-10">
       <div className="w-full h-fit">
@@ -140,7 +208,6 @@ const HistoryReq = () => {
         />
       </div>
 
-      {/* Tiêu đề */}
       <div className="relative w-full p-6 md:mt-10">
         <h1
           style={{ color: "#214E99" }}
@@ -199,7 +266,7 @@ const HistoryReq = () => {
             </div>
 
             <div className="w-full overflow-x-auto">
-              <div className="min-w-[800px]">
+              <div className="min-w-[900px]">
                 <table className="w-full text-sm text-gray-700">
                   <thead>
                     <tr className="bg-gray-100 text-left">
@@ -214,11 +281,14 @@ const HistoryReq = () => {
                       <th className="px-6 py-3 whitespace-nowrap">
                         Trạng thái
                       </th>
+                      <th className="px-6 py-3 whitespace-nowrap">
+                        Ngày đã trả
+                      </th>
                       <th className="px-6 py-3">Hành động</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRequests.length === 0 ? (
+                    {paginatedRequests.length === 0 ? (
                       <tr>
                         <td
                           colSpan="7"
@@ -228,29 +298,22 @@ const HistoryReq = () => {
                         </td>
                       </tr>
                     ) : (
-                      filteredRequests.map((request) => (
+                      paginatedRequests.map((request) => (
                         <tr
                           key={request.request_id}
                           className="border-t hover:bg-gray-50 transition"
                         >
-                          {/* Mã yêu cầu */}
                           <td className="px-6 py-4">
                             <span className="font-medium text-blue-600">
                               #{request.request_id}
                             </span>
                           </td>
-
-                          {/* Ngày yêu cầu */}
                           <td className="px-6 py-4 whitespace-nowrap">
                             {formatDate(request.request_date)}
                           </td>
-
-                          {/* Hạn trả */}
                           <td className="px-6 py-4 whitespace-nowrap">
-                            {formatDate(request.return_date)}
+                            {formatDate(getReturnDate(request))}
                           </td>
-
-                          {/* Số lượng sách */}
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="bg-blue-100 ml-4 text-blue-800 px-2 py-1 rounded-full text-xs font-semibold">
                               {request.books.reduce(
@@ -260,8 +323,6 @@ const HistoryReq = () => {
                               cuốn
                             </span>
                           </td>
-
-                          {/* Trạng thái */}
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span
                               className={`px-3 py-1 rounded-full text-xs font-semibold ${
@@ -272,8 +333,19 @@ const HistoryReq = () => {
                               {statusLabels[request.status] || request.status}
                             </span>
                           </td>
-
-                          {/* Hành động */}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                getReturnStatus(request) === "Chưa trả"
+                                  ? "bg-gray-100 text-gray-700"
+                                  : getReturnStatus(request) === "Trễ hạn"
+                                  ? "bg-red-100 text-red-700"
+                                  : "bg-green-100 text-green-700"
+                              }`}
+                            >
+                              {getReturnStatus(request)}
+                            </span>
+                          </td>
                           <td className="px-6 py-4">
                             <button
                               onClick={() => handleViewDetails(request)}
@@ -289,15 +361,64 @@ const HistoryReq = () => {
                 </table>
               </div>
             </div>
+
+            {/* Pagination controls */}
+            <div className="flex items-center justify-between px-6 py-4 border-t">
+              <div className="text-sm text-gray-600">
+                Hiển thị {filteredRequests.length === 0 ? 0 : startIndex + 1} -{" "}
+                {Math.min(endIndex, filteredRequests.length)} của{" "}
+                {filteredRequests.length} kết quả
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded border disabled:opacity-50"
+                  aria-label="Trang trước"
+                >
+                  <FaChevronLeft className="w-4 h-4" />
+                </button>
+
+                <div className="hidden sm:flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (page) => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`w-8 h-8 flex items-center justify-center text-sm rounded-md border ${
+                          page === currentPage
+                            ? "bg-blue-600 text-white"
+                            : "bg-white text-gray-700"
+                        }`}
+                        aria-current={page === currentPage ? "page" : undefined}
+                      >
+                        {page}
+                      </button>
+                    )
+                  )}
+                </div>
+
+                <button
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded border disabled:opacity-50"
+                  aria-label="Trang tiếp"
+                >
+                  <FaChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
 
       {/* Modal chi tiết */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            {/* Header */}
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-gray-100 bg-opacity-20 backdrop-blur-sm">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-lg">
             <div className="flex items-center justify-between p-6 border-b bg-blue-50">
               <h3 className="text-xl font-bold text-blue-700">
                 Chi tiết yêu cầu #{selectedRequest?.request_id}
@@ -310,9 +431,7 @@ const HistoryReq = () => {
               </button>
             </div>
 
-            {/* Content */}
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
-              {/* Thông tin yêu cầu */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="space-y-2">
                   <p>
@@ -321,7 +440,21 @@ const HistoryReq = () => {
                   </p>
                   <p>
                     <strong>Hạn trả:</strong>{" "}
-                    {formatDate(selectedRequest?.return_date)}
+                    {formatDate(getReturnDate(selectedRequest))}
+                  </p>
+                  <p>
+                    <strong>Ngày đã trả:</strong>
+                    <span
+                      className={`ml-2 px-3 py-1 rounded-full text-xs font-semibold ${
+                        getReturnStatus(selectedRequest) === "Chưa trả"
+                          ? "bg-gray-100 text-gray-700"
+                          : getReturnStatus(selectedRequest) === "Trễ hạn"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-green-100 text-green-700"
+                      }`}
+                    >
+                      {getReturnStatus(selectedRequest)}
+                    </span>
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -340,7 +473,6 @@ const HistoryReq = () => {
                 </div>
               </div>
 
-              {/* Danh sách sách */}
               <div>
                 <h4 className="text-lg font-semibold mb-4 text-gray-800">
                   Danh sách sách ({selectedRequest?.books.length} loại sách)
@@ -379,9 +511,6 @@ const HistoryReq = () => {
                             <strong>Thể loại:</strong>{" "}
                             {book.category?.name || "Không có thông tin"}
                           </p>
-                          <p className="text-sm text-gray-600">
-                            <strong>ISBN:</strong> {book.isbn || "Không có"}
-                          </p>
                         </div>
                         <div className="text-right flex-shrink-0">
                           <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold">
@@ -395,8 +524,19 @@ const HistoryReq = () => {
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="flex justify-end p-6 border-t bg-gray-50">
+            <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+              {selectedRequest?.status === "APPROVED" && (
+                <button
+                  onClick={handleReturnBooks}
+                  disabled={returningBook}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {returningBook && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  )}
+                  {returningBook ? "Đang xử lý..." : "Trả sách"}
+                </button>
+              )}
               <button
                 onClick={closeModal}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"

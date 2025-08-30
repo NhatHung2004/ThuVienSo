@@ -24,9 +24,13 @@ if (typeof document !== "undefined") {
   document.head.appendChild(styleSheet);
 }
 
-const Book = ({ title, description, image, author, rating }) => {
+const Book = ({ id, title, description, image, author, rating }) => {
+  const navigate = useNavigate();
   return (
-    <div className="flex-shrink-0 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden cursor-pointer w-56 sm:w-60 md:w-64">
+    <div
+      onClick={() => navigate(`/book-detail/${id}`)} // 👉 Khi click thì nav qua /books/:id
+      className="flex-shrink-0 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden cursor-pointer w-56 sm:w-60 md:w-64"
+    >
       <div className="relative">
         <img
           src={image}
@@ -429,7 +433,8 @@ const Home = () => {
               >
                 {books.map((book) => (
                   <Book
-                    key={book.id}
+                    key={book.id} // React key
+                    id={book.id} // 👈 Truyền id vào props để dùng trong navigate
                     title={book.title}
                     description={book.description}
                     image={book.image}

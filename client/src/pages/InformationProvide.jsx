@@ -100,7 +100,7 @@ const InformationProvide = () => {
         }
         alert("Mượn sách thành công!");
         // Tùy chọn: Xóa sách khỏi giỏ hàng hoặc navigate về trang khác
-        navigate("/cart"); // Ví dụ quay về cart
+        navigate("/cart");
       } catch (err) {
         console.log(err);
         alert("Có lỗi xảy ra khi gửi yêu cầu!");

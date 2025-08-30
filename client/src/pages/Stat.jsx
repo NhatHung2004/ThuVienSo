@@ -1,16 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   Receipt,
-  Package,
   ClipboardList,
-  FileBadge,
-  BarChart2,
-  ArrowUpRight,
-  Clipboard,
-  Search,
-  X,
-  Check,
-  TrendingUp,
   ChevronUp,
   ChevronDown,
   Users,
@@ -18,8 +9,10 @@ import {
   Calendar,
   Eye,
   Download,
-  Filter,
   BanknoteArrowUp,
+  TrendingUp,
+  Check,
+  BarChart2,
 } from "lucide-react";
 import {
   BarChart,
@@ -34,41 +27,9 @@ import {
   PieChart,
   Pie,
   Cell,
-  AreaChart,
-  Area,
 } from "recharts";
 import Sidebar, { SidebarItem } from "../components/layouts/Sidebar";
 import { Apis } from "../configs/Apis";
-
-const mockData = {
-  totalBooks: 12450,
-  totalMembers: 3280,
-  activeLoans: 847,
-  overdueBooks: 23,
-  monthlyLoans: [
-    { month: "T1", loans: 245, returns: 230 },
-    { month: "T2", loans: 289, returns: 267 },
-    { month: "T3", loans: 312, returns: 298 },
-    { month: "T4", loans: 278, returns: 295 },
-    { month: "T5", loans: 356, returns: 341 },
-    { month: "T6", loans: 423, returns: 398 },
-    { month: "T7", loans: 467, returns: 456 },
-    { month: "T8", loans: 398, returns: 412 },
-    { month: "T9", loans: 445, returns: 423 },
-    { month: "T10", loans: 389, returns: 401 },
-    { month: "T11", loans: 356, returns: 378 },
-    { month: "T12", loans: 234, returns: 245 },
-  ],
-  dailyVisitors: [
-    { day: "T2", visitors: 245 },
-    { day: "T3", visitors: 312 },
-    { day: "T4", visitors: 278 },
-    { day: "T5", visitors: 356 },
-    { day: "T6", visitors: 423 },
-    { day: "T7", visitors: 234 },
-    { day: "CN", visitors: 189 },
-  ],
-};
 
 // Statistics Cards Component
 const StatCard = ({
@@ -78,6 +39,7 @@ const StatCard = ({
   trend,
   trendValue,
   color = "blue",
+  isLoading,
 }) => {
   const colorClasses = {
     blue: "bg-blue-500",
@@ -92,10 +54,19 @@ const StatCard = ({
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
-          <p className="text-2xl font-bold text-gray-900">
-            {value.toLocaleString()}
-          </p>
-          {trend && (
+
+          {/* Show loading placeholder when isLoading */}
+          {isLoading ? (
+            <p className="text-2xl font-bold text-gray-400">Đang tải...</p>
+          ) : (
+            <p className="text-2xl font-bold text-gray-900">
+              {typeof value === "number"
+                ? value.toLocaleString()
+                : value ?? "-"}
+            </p>
+          )}
+
+          {trend && !isLoading && (
             <div className="flex items-center mt-2">
               {trend === "up" ? (
                 <ChevronUp className="h-4 w-4 text-green-500" />
@@ -121,10 +92,20 @@ const StatCard = ({
 // Main Statistics Component
 const Stat = () => {
   const [timeRange, setTimeRange] = useState("12months");
-  const [selectedCategory, setSelectedCategory] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
+
+  // All data states start empty (no mock data)
   const [categoryStats, setCategoryStats] = useState([]);
   const [popularBooks, setPopularBooks] = useState([]);
+  const [monthlyLoans, setMonthlyLoans] = useState([]); // will be [{month:'T1', loans:..., returns:...}, ...]
+  const [acceptRejectStats, setAcceptRejectStats] = useState([]); // will be [{month:'T1', accepted:..., rejected:...}, ...]
+
+  const [displayStats, setDisplayStats] = useState({
+    totalBooks: 0,
+    totalUsers: 0,
+    totalRatings: 0,
+    activeLoans: 0,
+  });
 
   // Màu sắc cho các thể loại
   const colors = [
@@ -138,59 +119,150 @@ const Stat = () => {
     "#6366F1",
   ];
 
+  // Fetch category stats
   const fetchCategoryStat = async () => {
     try {
-      setIsLoading(true);
       const res = await Apis.get("/stats/category_stats");
+      const totalBooks = Array.isArray(res.data)
+        ? res.data.reduce((sum, item) => sum + (item.total_of_books ?? 0), 0)
+        : 0;
 
-      // Tính tổng số sách để tính phần trăm
-      const totalBooks = res.data.reduce(
-        (sum, item) => sum + item.total_of_books,
-        0
-      );
-
-      // Chuyển đổi dữ liệu API thành format cần thiết
-      const formattedData = res.data.map((item, index) => ({
-        name: item.cate_name,
-        value: Math.round((item.total_of_books / totalBooks) * 100), // Tính phần trăm
-        books: item.total_of_books,
-        color: colors[index % colors.length], // Chọn màu từ mảng colors
-        cate_id: item.cate_id,
-      }));
+      const formattedData = Array.isArray(res.data)
+        ? res.data.map((item, index) => ({
+            name: item.cate_name,
+            value:
+              totalBooks > 0
+                ? Math.round(((item.total_of_books ?? 0) / totalBooks) * 100)
+                : 0,
+            books: item.total_of_books ?? 0,
+            color: colors[index % colors.length],
+            cate_id: item.cate_id,
+          }))
+        : [];
 
       setCategoryStats(formattedData);
-      console.log("Formatted category stats:", formattedData);
     } catch (err) {
-      console.log("Error fetching category stats:", err);
+      console.error("Error fetching category stats:", err);
+      setCategoryStats([]);
+    }
+  };
+
+  // Fetch popular books
+  const fetchBookBorrowStat = async () => {
+    try {
+      const res = await Apis.get("/stats/book_frequency");
+      console.log(res.data);
+      const sortedBooks = Array.isArray(res.data)
+        ? res.data
+            .sort(
+              (a, b) =>
+                (b.total_borrow_quantity ?? 0) - (a.total_borrow_quantity ?? 0)
+            )
+            .slice(0, 5)
+            .map((book) => ({
+              title: book.book_title,
+              loans: book.number_of_book_borrows ?? 0,
+              book_id: book.book_id,
+            }))
+        : [];
+      setPopularBooks(sortedBooks);
+    } catch (err) {
+      console.error("Error fetching book borrow stats:", err);
+      setPopularBooks([]);
+    }
+  };
+
+  // Fetch borrowing stats for 12 months
+  const fetchBorrowingStat = async () => {
+    try {
+      const months = Array.from({ length: 12 }, (_, i) => i + 1); // 1..12
+
+      const promises = months.map((m) =>
+        Apis.get("/stats/book_borrowing_stats", { params: { month: m } })
+          .then((res) => {
+            const data = Array.isArray(res.data)
+              ? res.data[0] ?? {}
+              : res.data ?? {};
+            return {
+              month: m,
+              total_of_borrowing_books: Number(
+                data.total_of_borrowing_books ?? 0
+              ),
+              total_of_returned_books: Number(
+                data.total_of_returned_books ?? 0
+              ),
+              total_of_accepted: Number(data.total_of_accepted ?? 0),
+              total_of_rejected: Number(data.total_of_rejected ?? 0),
+            };
+          })
+          .catch((err) => {
+            console.warn(`Error fetching month ${m}`, err);
+            return {
+              month: m,
+              total_of_borrowing_books: 0,
+              total_of_returned_books: 0,
+              total_of_accepted: 0,
+              total_of_rejected: 0,
+            };
+          })
+      );
+
+      const results = await Promise.all(promises);
+
+      const monthly = results.map((r) => ({
+        month: `T${r.month}`,
+        loans: r.total_of_borrowing_books,
+        returns: r.total_of_returned_books,
+      }));
+
+      const acceptReject = results.map((r) => ({
+        month: `T${r.month}`,
+        accepted: r.total_of_accepted,
+        rejected: r.total_of_rejected,
+      }));
+
+      setMonthlyLoans(monthly);
+      setAcceptRejectStats(acceptReject);
+    } catch (err) {
+      console.error("Error fetching borrowing stats:", err);
+      setMonthlyLoans([]);
+      setAcceptRejectStats([]);
+    }
+  };
+
+  const fetchStat = async () => {
+    try {
+      const res = await Apis.get("/stats/general_stats");
+      console.log(res.data);
+      const data = {
+        totalBooks: res.data.total_of_books,
+        totalUsers: res.data.number_of_users,
+        totalRatings: res.data.average_rating,
+        activeLoans: res.data.number_of_borrows,
+      };
+      setDisplayStats(data);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  // Aggregate fetch: set loading state while all requests run
+  const fetchAll = async () => {
+    try {
+      setIsLoading(true);
+      await Promise.all([
+        fetchCategoryStat(),
+        fetchBookBorrowStat(),
+        fetchBorrowingStat(),
+        fetchStat(),
+      ]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const fetchBookBorrowStat = async () => {
-    try {
-      const res = await Apis.get("/stats/book_borrowing_stats");
-
-      // Sắp xếp theo số lượt mượn giảm dần và lấy top 5
-      const sortedBooks = res.data
-        .sort((a, b) => b.total_borrow_quantity - a.total_borrow_quantity)
-        .slice(0, 5)
-        .map((book) => ({
-          title: book.book_title,
-          loans: book.total_borrow_quantity,
-          book_id: book.book_id,
-        }));
-
-      setPopularBooks(sortedBooks);
-      console.log("Popular books:", sortedBooks);
-    } catch (err) {
-      console.log("Error fetching book borrow stats:", err);
-    }
-  };
-
   useEffect(() => {
-    fetchCategoryStat();
-    fetchBookBorrowStat();
+    fetchAll();
   }, []);
 
   return (
@@ -235,38 +307,38 @@ const Stat = () => {
           </div>
         </div>
 
-        {/* Statistics Cards */}
+        {/* Statistics Cards (show loading placeholders if data not ready) */}
         <div className="grid grid-cols-4 gap-6 mb-8">
           <StatCard
             title="Tổng số sách"
-            value={mockData.totalBooks}
+            value={displayStats.totalBooks}
             icon={<BookOpen className="h-6 w-6 text-white" />}
-            trend="up"
-            trendValue={8.2}
+            trend={null}
+            isLoading={isLoading}
             color="blue"
           />
           <StatCard
             title="Thành viên"
-            value={mockData.totalMembers}
+            value={displayStats.totalUsers}
             icon={<Users className="h-6 w-6 text-white" />}
-            trend="up"
-            trendValue={12.5}
+            trend={null}
+            isLoading={isLoading}
             color="green"
           />
           <StatCard
             title="Đang mượn"
-            value={mockData.activeLoans}
+            value={null}
             icon={<ClipboardList className="h-6 w-6 text-white" />}
-            trend="down"
-            trendValue={3.1}
+            trend={null}
+            isLoading={isLoading}
             color="purple"
           />
           <StatCard
             title="Quá hạn"
-            value={mockData.overdueBooks}
+            value={null}
             icon={<Calendar className="h-6 w-6 text-white" />}
-            trend="down"
-            trendValue={15.3}
+            trend={null}
+            isLoading={isLoading}
             color="red"
           />
         </div>
@@ -281,26 +353,34 @@ const Stat = () => {
               </h3>
               <TrendingUp className="h-5 w-5 text-gray-400" />
             </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={mockData.monthlyLoans}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Bar
-                  dataKey="loans"
-                  fill="#3B82F6"
-                  name="Mượn"
-                  radius={[4, 4, 0, 0]}
-                />
-                <Bar
-                  dataKey="returns"
-                  fill="#10B981"
-                  name="Trả"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+
+            {/* If still loading OR monthlyLoans empty, show loading block */}
+            {isLoading || monthlyLoans.length === 0 ? (
+              <div className="flex items-center justify-center h-[300px] text-gray-500">
+                Đang tải dữ liệu...
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={monthlyLoans}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar
+                    dataKey="loans"
+                    fill="#3B82F6"
+                    name="Mượn"
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="returns"
+                    fill="#10B981"
+                    name="Trả"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
 
           {/* Category Distribution */}
@@ -311,9 +391,10 @@ const Stat = () => {
               </h3>
               <Eye className="h-5 w-5 text-gray-400" />
             </div>
+
             {isLoading ? (
-              <div className="flex items-center justify-center h-[300px]">
-                <div className="text-gray-500">Đang tải dữ liệu...</div>
+              <div className="flex items-center justify-center h-[300px] text-gray-500">
+                Đang tải dữ liệu...
               </div>
             ) : categoryStats.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
@@ -340,23 +421,28 @@ const Stat = () => {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-[300px]">
-                <div className="text-gray-500">Không có dữ liệu</div>
+              <div className="flex items-center justify-center h-[300px] text-gray-500">
+                Không có dữ liệu
               </div>
             )}
           </div>
         </div>
 
-        {/* Additional Statistics */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Additional Statistics: 2 columns on large screens (Popular Books + Accepted/Rejected) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Popular Books */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Sách được mượn nhiều nhất
             </h3>
-            <div className="space-y-3">
-              {popularBooks.length > 0 ? (
-                popularBooks.map((book, index) => (
+
+            {isLoading ? (
+              <div className="text-center text-gray-500 py-6">
+                Đang tải dữ liệu...
+              </div>
+            ) : popularBooks.length > 0 ? (
+              <div className="space-y-3">
+                {popularBooks.map((book) => (
                   <div
                     key={book.book_id}
                     className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
@@ -370,65 +456,51 @@ const Stat = () => {
                       {book.loans} lượt
                     </span>
                   </div>
-                ))
-              ) : (
-                <div className="text-center text-gray-500 py-4">
-                  Đang tải dữ liệu...
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center text-gray-500 py-6">
+                Không có dữ liệu
+              </div>
+            )}
           </div>
 
-          {/* Daily Visitors */}
+          {/* Accepted vs Rejected Line Chart */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Lượt truy cập trong tuần
+              Duyệt / Từ chối theo tháng
             </h3>
-            <ResponsiveContainer width="100%" height={200}>
-              <AreaChart data={mockData.dailyVisitors}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" />
-                <YAxis />
-                <Tooltip />
-                <Area
-                  type="monotone"
-                  dataKey="visitors"
-                  stroke="#8B5CF6"
-                  fill="#8B5CF6"
-                  fillOpacity={0.3}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
 
-          {/* Recent Activities */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Hoạt động gần đây
-            </h3>
-            <div className="space-y-3">
-              <div className="flex items-center p-2 border-l-4 border-green-400 bg-green-50">
-                <Check className="h-4 w-4 text-green-600 mr-2" />
-                <div className="text-sm">
-                  <p className="font-medium">Phê duyệt mượn sách</p>
-                  <p className="text-gray-600">2 phút trước</p>
-                </div>
+            {isLoading || acceptRejectStats.length === 0 ? (
+              <div className="flex items-center justify-center h-64 text-gray-500">
+                Đang tải dữ liệu...
               </div>
-              <div className="flex items-center p-2 border-l-4 border-blue-400 bg-blue-50">
-                <BookOpen className="h-4 w-4 text-blue-600 mr-2" />
-                <div className="text-sm">
-                  <p className="font-medium">Thêm sách mới</p>
-                  <p className="text-gray-600">15 phút trước</p>
-                </div>
+            ) : (
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={acceptRejectStats}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line
+                      type="monotone"
+                      dataKey="accepted"
+                      stroke="#10B981"
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="rejected"
+                      stroke="#EF4444"
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
-              <div className="flex items-center p-2 border-l-4 border-orange-400 bg-orange-50">
-                <Calendar className="h-4 w-4 text-orange-600 mr-2" />
-                <div className="text-sm">
-                  <p className="font-medium">Nhắc nhở quá hạn</p>
-                  <p className="text-gray-600">1 giờ trước</p>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
