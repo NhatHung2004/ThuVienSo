@@ -133,9 +133,11 @@ category_stats_model = api.model('CategoryStats', {
 })
 
 book_borrowing_stats_model = api.model('BookBorrowStats', {
-    'book_id': fields.Integer(readOnly=True),
-    'book_title': fields.String(readOnly=True),
-    'total_borrow_quantity': fields.Integer(readOnly=True),
+    'month': fields.Integer(readOnly=True),
+    'total_of_borrowing_books': fields.Integer(required=True),
+    'total_of_returned_books': fields.Integer(readOnly=True),
+    'total_of_accepted': fields.Integer(required=True),
+    'total_of_rejected': fields.Integer(readOnly=True),
 })
 
 cart_model = api.model('Cart', {

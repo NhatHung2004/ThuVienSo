@@ -1,4 +1,4 @@
-from sqlalchemy import func, extract
+from sqlalchemy import func, extract, literal, case
 from app import db
 from app.models import Book, Request, RequestDetail, User, UserRole, Category, StatusCheck
 
@@ -46,13 +46,55 @@ def category_stats():
 
     return query.group_by(Category.id, Category.name).all()
 
-def book_borrowing_stats():
+def book_borrowing_stats(month_param, year_param=2025):
+    if month_param is None:
+        return None
+
     query = (
         db.session.query(
-            Book.id.label('book_id'),
-            Book.title.label('book_title'),
-            func.coalesce(func.sum(RequestDetail.quantity), 0).label('total_borrow_quantity'),
-        ).outerjoin(RequestDetail, Book.id == RequestDetail.book_id)
+            literal(month_param).label("month"),
+
+            # tổng sách đang mượn
+            func.coalesce(
+                func.sum(
+                    case((Request.status == StatusCheck.APPROVED.value, RequestDetail.quantity), else_=0)
+                ),
+                0
+            ).label('total_of_borrowing_books'),
+
+            # tổng sách đã trả
+            func.coalesce(
+                func.sum(
+                    case((Request.status == StatusCheck.RETURNED.value, RequestDetail.quantity), else_=0)
+                ),
+                0
+            ).label('total_of_returned_books'),
+
+            # tổng accepted = APPROVED + RETURNED
+            func.coalesce(
+                func.sum(
+                    case(
+                        (Request.status.in_([StatusCheck.APPROVED, StatusCheck.RETURNED]), 1),
+                        else_=0
+                    )
+                )
+            ).label('total_of_accepted'),
+
+            # tổng rejected
+            func.coalesce(
+                func.sum(
+                    case(
+                        (Request.status == StatusCheck.REJECTED.value, 1),
+                        else_=0
+                    )
+                )
+            ).label('total_of_rejected'),
+        )
+        .join(Request, RequestDetail.request_id == Request.id)
+        .filter(extract('year', Request.request_date) == year_param)
     )
 
-    return query.group_by(Book.id, Book.title).all()
+    if month_param:
+        query = query.filter(extract('month', Request.request_date) == month_param)
+
+    return query.all()
