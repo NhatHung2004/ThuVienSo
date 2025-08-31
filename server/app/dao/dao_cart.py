@@ -1,4 +1,4 @@
-from app.models import Cart, CartDetail
+from app.models import Cart, CartDetail, Book
 from app import db
 
 def get_cart_by_user_id(user_id):
@@ -33,6 +33,8 @@ def get_cart_by_user_id(user_id):
 
 def create_or_increase_cart(user_id, quantity, book_id):
     cart = Cart.query.filter_by(user_id=user_id).first()
+    book = Book.query.filter_by(id=book_id).first()
+    book.quantity -= quantity
 
     if cart:
         cart_detail = CartDetail.query.filter_by(cart_id=cart.id, book_id=book_id).first()
