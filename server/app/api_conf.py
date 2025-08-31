@@ -202,6 +202,7 @@ book_update_parser.add_argument('image', type=FileStorage, help='Ảnh sách', l
 book_update_parser.add_argument('quantity', type=int, help='Số lượng', location='form')
 book_update_parser.add_argument('author', type=str, help='Tác giả', location='form')
 book_update_parser.add_argument('category', type=str, help='Loại sách', location='form')
+book_update_parser.add_argument('published_date', type=str, help='Ngày xuất bản', location='form')
 
 ''' Comment '''
 comment_parser = reqparse.RequestParser()

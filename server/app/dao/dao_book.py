@@ -41,13 +41,20 @@ def add_book(title, description, image, quantity, author, category, published_da
     return book
 
 def update_book(book_id, data_to_update):
-    book = get_book_by_id(book_id)
-
-    if book is None:
+    book = Book.query.get(book_id)
+    if not book:
         return None
 
     for key, value in data_to_update.items():
-        if hasattr(book, key) and value is not None:
+        if key == "category":  # nếu frontend gửi name category
+            cate = Category.query.filter_by(name=value).first()
+            if cate:
+                book.category = cate
+        elif key == "author":
+            author = Author.query.filter_by(name=value).first()
+            if author:
+                book.author = author
+        else:
             setattr(book, key, value)
 
     db.session.commit()
