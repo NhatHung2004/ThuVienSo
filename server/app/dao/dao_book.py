@@ -54,7 +54,7 @@ def update_book(book_id, data_to_update):
             author = Author.query.filter_by(name=value).first()
             if author:
                 book.author = author
-        elif hasattr(book, key):
+        elif hasattr(book, key) and value is not None:
             setattr(book, key, value)
 
     db.session.commit()
