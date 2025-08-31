@@ -20,6 +20,12 @@ const BookDetail = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState(null);
 
+  // check role — hỗ trợ vài dạng string phổ biến
+  const isLibrarian =
+    user?.role === "ROLE_LIBRARIAN" ||
+    user?.role === "UserRole.LIBRARIAN" ||
+    user?.role === "LIBRARIAN";
+
   useEffect(() => {
     console.log(user);
   }, []);
@@ -67,6 +73,10 @@ const BookDetail = () => {
       alert("Bạn cần đăng nhập để thêm giỏ hàng");
       return;
     }
+    if (isLibrarian) {
+      alert("Tài khoản thủ thư không thể thêm giỏ hàng");
+      return;
+    }
     try {
       await authApis().post("/carts/", {
         user_id: user.id,
@@ -83,6 +93,10 @@ const BookDetail = () => {
   const addComment = async () => {
     if (!user) {
       alert("Bạn cần đăng nhập để bình luận!");
+      return;
+    }
+    if (isLibrarian) {
+      alert("Tài khoản thủ thư không thể viết đánh giá");
       return;
     }
     if (!reviewRating || !reviewContent.trim()) {
@@ -177,7 +191,7 @@ const BookDetail = () => {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-8 max-w-md mx-4 shadow-2xl">
             <div className="text-center">
               <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
@@ -272,30 +286,32 @@ const BookDetail = () => {
                         </span>
                       </div>
                       <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                        <button
-                          onClick={addCart}
-                          disabled={book.quantity === 0}
-                          className={`bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl ${
-                            book.quantity === 0
-                              ? "opacity-50 cursor-not-allowed"
-                              : "hover:from-blue-700 hover:to-blue-800 transform hover:scale-105"
-                          }`}
-                        >
-                          <svg
-                            className="w-5 h-5 inline mr-2"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                        {!isLibrarian && (
+                          <button
+                            onClick={addCart}
+                            disabled={book.quantity === 0}
+                            className={`bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl ${
+                              book.quantity === 0
+                                ? "opacity-50 cursor-not-allowed"
+                                : "hover:from-blue-700 hover:to-blue-800 transform hover:scale-105"
+                            }`}
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5-6m0 0h12M17 13v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6"
-                            />
-                          </svg>
-                          {book.quantity === 0 ? "Hết sách" : "Thêm vào giỏ"}
-                        </button>
+                            <svg
+                              className="w-5 h-5 inline mr-2"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5-6m0 0h12M17 13v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6"
+                              />
+                            </svg>
+                            {book.quantity === 0 ? "Hết sách" : "Thêm vào giỏ"}
+                          </button>
+                        )}
                       </div>
                     </div>
                     <div className="bg-gray-50 rounded-xl p-6">
@@ -343,38 +359,41 @@ const BookDetail = () => {
                   <h3 className="text-2xl font-bold text-gray-900 mb-4 md:mb-0">
                     Đánh giá & Nhận xét ({comments.length})
                   </h3>
-                  {!showReviewForm ? (
-                    <button
-                      onClick={() => setShowReviewForm(true)}
-                      className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-green-700 hover:to-green-800 transform hover:scale-105 transition-all duration-200 shadow-lg"
-                    >
-                      <svg
-                        className="w-5 h-5 inline mr-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+
+                  {!isLibrarian ? (
+                    !showReviewForm ? (
+                      <button
+                        onClick={() => setShowReviewForm(true)}
+                        className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-green-700 hover:to-green-800 transform hover:scale-105 transition-all duration-200 shadow-lg"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 4v16m8-8H4"
-                        />
-                      </svg>
-                      Viết đánh giá
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        setShowReviewForm(false);
-                        setReviewRating(0);
-                        setReviewContent("");
-                      }}
-                      className="bg-gray-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-gray-600 transition-all duration-200"
-                    >
-                      Hủy bỏ
-                    </button>
-                  )}
+                        <svg
+                          className="w-5 h-5 inline mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 4v16m8-8H4"
+                          />
+                        </svg>
+                        Viết đánh giá
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setShowReviewForm(false);
+                          setReviewRating(0);
+                          setReviewContent("");
+                        }}
+                        className="bg-gray-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-gray-600 transition-all duration-200"
+                      >
+                        Hủy bỏ
+                      </button>
+                    )
+                  ) : null}
                 </div>
 
                 {showReviewForm && (

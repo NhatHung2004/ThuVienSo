@@ -42,6 +42,9 @@ export default function Sidebar({ children }) {
               expanded ? "w-20" : "w-0"
             }`}
             alt="Logo"
+            onClick={() => {
+              navigate("/stat");
+            }}
           />
           <button
             onClick={() => {

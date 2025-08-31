@@ -320,28 +320,6 @@ const Home = () => {
             >
               Khám phá ngay
             </button>
-
-            <Link to="/login" className="w-full sm:w-auto">
-              <button className="w-full sm:w-auto bg-white font-semibold px-8 py-3 sm:py-4 rounded-lg duration-300 transform hover:-translate-y-1 cursor-pointer flex items-center justify-center gap-2 border border-gray-200 hover:border-[#214E99] whitespace-nowrap">
-                <span className="bg-gradient-to-r from-[#214E99] to-[#0B1A33] bg-clip-text text-transparent font-semibold hover:underline hover:opacity-80 transition">
-                  Đăng nhập
-                </span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-[#214E99]"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </button>
-            </Link>
           </div>
         </div>
       </div>

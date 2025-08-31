@@ -37,8 +37,9 @@ const BookRequest = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [currentPage, setCurrentPage] = useState(1); // Pagination: Current page
-  const requestsPerPage = 6; // Pagination: 6 requests per page
+  const [currentPage, setCurrentPage] = useState(1);
+  const requestsPerPage = 6;
+  const [isLoading, setIsLoading] = useState(false);
   const user = useContext(MyUserContext);
   const navigate = useNavigate();
 
@@ -48,7 +49,7 @@ const BookRequest = () => {
     return () => clearTimeout(t);
   }, [searchTerm]);
 
-  // Reset to page 1 when search or filter changes (prevents empty page due to pagination)
+  // Reset to page 1 when search or filter changes
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearchTerm, statusFilter]);
@@ -184,7 +185,11 @@ const BookRequest = () => {
         ).toISOString(),
       });
 
-      handleApprove(selectedRequest.id);
+      setRequests((prev) =>
+        prev.map((req) =>
+          req.id === selectedRequest.id ? { ...req, status: "approved" } : req
+        )
+      );
 
       await sendNotificationToUser(
         selectedRequest.borrower.userId,
@@ -209,7 +214,11 @@ const BookRequest = () => {
         librarian_id: user.id,
       });
 
-      handleReject(selectedRequest.id);
+      setRequests((prev) =>
+        prev.map((req) =>
+          req.id === selectedRequest.id ? { ...req, status: "rejected" } : req
+        )
+      );
 
       await sendNotificationToUser(
         selectedRequest.borrower.userId,
@@ -225,31 +234,40 @@ const BookRequest = () => {
     }
   };
 
+  const returnRequest = async () => {
+    if (!selectedRequest) return;
+
+    try {
+      setActionLoading(true);
+      await authApis().patch(`/requests/${selectedRequest.id}/returned`, {
+        librarian_id: user.id,
+      });
+
+      setRequests((prev) =>
+        prev.map((req) =>
+          req.id === selectedRequest.id ? { ...req, status: "returned" } : req
+        )
+      );
+
+      await sendNotificationToUser(
+        selectedRequest.borrower.userId,
+        `Yêu cầu mượn sách của bạn đã được ghi nhận TRẢ SÁCH!`
+      );
+
+      alert("Đã ghi nhận trả sách thành công!");
+      setShowModal(false);
+    } catch (error) {
+      console.error("Lỗi khi ghi nhận trả sách:", error);
+      alert("Có lỗi xảy ra khi ghi nhận trả sách. Vui lòng thử lại!");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchAllRequestsWithBooks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const handleApprove = (requestId) => {
-    setRequests((prev) =>
-      prev.map((req) =>
-        req.id === requestId ? { ...req, status: "approved" } : req
-      )
-    );
-  };
-
-  const handleReject = (requestId) => {
-    setRequests((prev) =>
-      prev.map((req) =>
-        req.id === requestId ? { ...req, status: "rejected" } : req
-      )
-    );
-  };
-
-  const handleViewDetails = (request) => {
-    setSelectedRequest(request);
-    setShowModal(true);
-  };
 
   const handleConfirmAction = (action) => {
     setConfirmAction(action);
@@ -263,10 +281,17 @@ const BookRequest = () => {
       await acceptRequest();
     } else if (confirmAction === "reject") {
       await declineRequest();
+    } else if (confirmAction === "return") {
+      await returnRequest();
     }
 
     setShowModal(false);
     setConfirmAction(null);
+  };
+
+  const handleViewDetails = (request) => {
+    setSelectedRequest(request);
+    setShowModal(true);
   };
 
   const getStatusColor = (status) => {
@@ -299,7 +324,6 @@ const BookRequest = () => {
     }
   };
 
-  // Use debouncedSearchTerm for actual filtering
   const normalizedSearch = (debouncedSearchTerm || "").trim().toLowerCase();
 
   const filteredRequests = requests
@@ -321,9 +345,8 @@ const BookRequest = () => {
 
       return matchesSearch && matchesStatus;
     })
-    .sort((a, b) => new Date(b.requestDate) - new Date(a.requestDate)); // Sort by requestDate descending
+    .sort((a, b) => new Date(b.requestDate) - new Date(a.requestDate));
 
-  // Pagination logic
   const totalPages = Math.ceil(filteredRequests.length / requestsPerPage) || 1;
   const indexOfLastRequest = currentPage * requestsPerPage;
   const indexOfFirstRequest = indexOfLastRequest - requestsPerPage;
@@ -522,18 +545,10 @@ const BookRequest = () => {
                                 <span className="font-medium">
                                   {book.title}
                                 </span>
-                                <span className="text-blue-600 ml-2">
-                                  (SL: {book.quantity})
-                                </span>
                               </div>
                             </div>
                           ))}
                         </div>
-                        {request.books.length > 2 && (
-                          <div className="text-sm text-blue-600 mt-2 text-center border-t border-gray-200 pt-2">
-                            và {request.books.length - 2} cuốn khác...
-                          </div>
-                        )}
                       </div>
                     </div>
 
@@ -556,7 +571,6 @@ const BookRequest = () => {
                 ))}
               </div>
 
-              {/* Pagination Controls */}
               {totalPages > 1 && (
                 <div className="mt-6 flex justify-center items-center space-x-2">
                   <button
@@ -593,7 +607,6 @@ const BookRequest = () => {
         </div>
       </div>
 
-      {/* Detail Modal */}
       {showModal && selectedRequest && (
         <div className="fixed inset-0 bg-gray-200/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
@@ -771,32 +784,53 @@ const BookRequest = () => {
                 </div>
               </div>
 
-              {selectedRequest.status === "pending" && (
+              {(selectedRequest.status === "pending" ||
+                (selectedRequest.status === "approved" &&
+                  selectedRequest.method === "DIRECT")) && (
                 <div className="mt-8 pt-6 border-t border-gray-200 flex justify-end space-x-4">
-                  <button
-                    onClick={() => handleConfirmAction("reject")}
-                    disabled={actionLoading}
-                    className="flex items-center space-x-2 px-6 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {actionLoading && confirmAction === "reject" ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <XCircle className="h-4 w-4" />
+                  {selectedRequest.status === "pending" && (
+                    <>
+                      <button
+                        onClick={() => handleConfirmAction("reject")}
+                        disabled={actionLoading}
+                        className="flex items-center space-x-2 px-6 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {actionLoading && confirmAction === "reject" ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <XCircle className="h-4 w-4" />
+                        )}
+                        <span>Từ chối</span>
+                      </button>
+                      <button
+                        onClick={() => handleConfirmAction("approve")}
+                        disabled={actionLoading}
+                        className="flex items-center space-x-2 px-6 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {actionLoading && confirmAction === "approve" ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <CheckCircle className="h-4 w-4" />
+                        )}
+                        <span>Duyệt yêu cầu</span>
+                      </button>
+                    </>
+                  )}
+                  {selectedRequest.status === "approved" &&
+                    selectedRequest.method === "DIRECT" && (
+                      <button
+                        onClick={() => handleConfirmAction("return")}
+                        disabled={actionLoading}
+                        className="flex items-center space-x-2 px-6 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {actionLoading && confirmAction === "return" ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <BookOpen className="h-4 w-4" />
+                        )}
+                        <span>Trả sách</span>
+                      </button>
                     )}
-                    <span>Từ chối</span>
-                  </button>
-                  <button
-                    onClick={() => handleConfirmAction("approve")}
-                    disabled={actionLoading}
-                    className="flex items-center space-x-2 px-6 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {actionLoading && confirmAction === "approve" ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <CheckCircle className="h-4 w-4" />
-                    )}
-                    <span>Duyệt yêu cầu</span>
-                  </button>
                 </div>
               )}
             </div>
@@ -810,20 +844,26 @@ const BookRequest = () => {
             <div className="flex items-center mb-4">
               {confirmAction === "approve" ? (
                 <CheckCircle className="h-8 w-8 text-green-600 mr-3" />
-              ) : (
+              ) : confirmAction === "reject" ? (
                 <XCircle className="h-8 w-8 text-red-600 mr-3" />
+              ) : (
+                <BookOpen className="h-8 w-8 text-blue-600 mr-3" />
               )}
               <h3 className="text-lg font-semibold text-gray-900">
                 {confirmAction === "approve"
                   ? "Xác nhận duyệt yêu cầu"
-                  : "Xác nhận từ chối yêu cầu"}
+                  : confirmAction === "reject"
+                  ? "Xác nhận từ chối yêu cầu"
+                  : "Xác nhận trả sách"}
               </h3>
             </div>
 
             <p className="text-gray-600 mb-6">
               {confirmAction === "approve"
                 ? 'Bạn có chắc chắn muốn duyệt yêu cầu mượn sách này không? Sau khi duyệt, yêu cầu sẽ được chuyển sang trạng thái "Đã duyệt".'
-                : 'Bạn có chắc chắn muốn từ chối yêu cầu mượn sách này không? Sau khi từ chối, yêu cầu sẽ được chuyển sang trạng thái "Từ chối".'}
+                : confirmAction === "reject"
+                ? 'Bạn có chắc chắn muốn từ chối yêu cầu mượn sách này không? Sau khi từ chối, yêu cầu sẽ được chuyển sang trạng thái "Từ chối".'
+                : 'Bạn có chắc chắn muốn ghi nhận trả sách cho yêu cầu này không? Sau khi xác nhận, yêu cầu sẽ được chuyển sang trạng thái "Đã trả".'}
             </p>
 
             <div className="flex justify-end space-x-4">
@@ -843,7 +883,9 @@ const BookRequest = () => {
                 className={`flex items-center space-x-2 px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   confirmAction === "approve"
                     ? "bg-green-600 hover:bg-green-700"
-                    : "bg-red-600 hover:bg-red-700"
+                    : confirmAction === "reject"
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-blue-600 hover:bg-blue-700"
                 }`}
               >
                 {actionLoading ? (
@@ -855,7 +897,9 @@ const BookRequest = () => {
                   <span>
                     {confirmAction === "approve"
                       ? "Duyệt yêu cầu"
-                      : "Từ chối yêu cầu"}
+                      : confirmAction === "reject"
+                      ? "Từ chối yêu cầu"
+                      : "Xác nhận trả sách"}
                   </span>
                 )}
               </button>

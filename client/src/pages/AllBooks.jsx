@@ -408,51 +408,6 @@ const AllBooks = () => {
                   ))}
                 </ul>
               </div>
-
-              <div className="mt-6 pt-4 border-t border-gray-200">
-                <h3 className="font-semibold text-gray-700 mb-3">Lọc theo</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="new-books"
-                      className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
-                    />
-                    <label
-                      htmlFor="new-books"
-                      className="ml-2 text-gray-700 cursor-pointer"
-                    >
-                      Sách mới nhất
-                    </label>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="high-rated"
-                      className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
-                    />
-                    <label
-                      htmlFor="high-rated"
-                      className="ml-2 text-gray-700 cursor-pointer"
-                    >
-                      Được đánh giá cao
-                    </label>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="available"
-                      className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
-                    />
-                    <label
-                      htmlFor="available"
-                      className="ml-2 text-gray-700 cursor-pointer"
-                    >
-                      Có sẵn để mượn
-                    </label>
-                  </div>
-                </div>
-              </div>
             </div>
 
             <div className="w-full md:w-3/4">

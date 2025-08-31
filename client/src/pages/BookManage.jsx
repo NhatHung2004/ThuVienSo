@@ -12,7 +12,6 @@ import {
   Search,
   X,
 } from "lucide-react";
-
 import { useNavigate } from "react-router-dom";
 
 const BookManage = () => {
@@ -29,6 +28,7 @@ const BookManage = () => {
   const [quantity, setQuantity] = useState("");
   const [author, setAuthor] = useState(""); // used when authorMode === 'select'
   const [selectedCategory, setSelectedCategory] = useState(""); // cate.name
+  const [publishedDate, setPublishedDate] = useState(""); // New state for published_date
   const [openDialog, setOpenDialog] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
 
@@ -45,7 +45,7 @@ const BookManage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [sortBy, setSortBy] = useState("all");
+  const [sortBy, setSortBy] = useState("newest"); // Default to newest
 
   const navigate = useNavigate();
 
@@ -88,10 +88,11 @@ const BookManage = () => {
     }
   };
 
-  // filter logic
+  // filter and sort logic
   const filterBooks = () => {
     let filtered = [...books];
 
+    // Search filter
     if (searchTerm.trim()) {
       filtered = filtered.filter((book) => {
         const title = book.title || "";
@@ -103,9 +104,9 @@ const BookManage = () => {
       });
     }
 
+    // Category filter
     if (filterCategory && filterCategory !== "all") {
       filtered = filtered.filter((book) => {
-        // book may have category_id or category (name) depending on API
         return (
           book.category_id === parseInt(filterCategory) ||
           String(book.category) === String(filterCategory) ||
@@ -114,12 +115,14 @@ const BookManage = () => {
       });
     }
 
+    // Status filter
     if (filterStatus === "available") {
       filtered = filtered.filter((book) => (book.quantity || 0) > 0);
     } else if (filterStatus === "unavailable") {
       filtered = filtered.filter((book) => (book.quantity || 0) === 0);
     }
 
+    // Sort logic
     if (sortBy === "name-asc") {
       filtered = filtered.sort((a, b) =>
         (a.title || "").localeCompare(b.title || "")
@@ -132,7 +135,7 @@ const BookManage = () => {
       filtered = filtered.sort((a, b) => {
         const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
         const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
-        return dateB - dateA;
+        return dateB - dateA; // Newest first
       });
     }
 
@@ -169,10 +172,8 @@ const BookManage = () => {
 
   // mở dialog để sửa
   const openEditDialog = (book) => {
-    // đặt trạng thái edit
     setEditingBookId(book.id);
 
-    // map tác giả: nếu tác giả tồn tại trong authors => select, ngược lại đặt vào newAuthor
     const bookAuthor = book.author || book.author_name || "";
     const foundAuthor = authors.find((a) => a.name === bookAuthor);
     if (foundAuthor) {
@@ -185,9 +186,8 @@ const BookManage = () => {
       setAuthor("");
     }
 
-    // map category: API có thể trả category name hoặc category_id
     let catName = "";
-    if (book.category) catName = book.category; // nếu trả về tên
+    if (book.category) catName = book.category;
     else if (book.category_name) catName = book.category_name;
     else if (book.category_id && cates.length > 0) {
       const found = cates.find(
@@ -205,12 +205,11 @@ const BookManage = () => {
       setNewCategory("");
     }
 
-    // các trường khác
     setName(book.title || "");
     setDescription(book.description || "");
     setQuantity(String(book.quantity || ""));
+    setPublishedDate(book.published_date || "");
 
-    // preview image nếu có url
     if (book.image) {
       setPreviewUrl(book.image);
       setImage(book.image);
@@ -232,6 +231,7 @@ const BookManage = () => {
     setAuthor("");
     setNewAuthor("");
     setNewCategory("");
+    setPublishedDate("");
     setAuthorMode("select");
     setCategoryMode("select");
     setEditingBookId(null);
@@ -256,12 +256,12 @@ const BookManage = () => {
       formData.append("title", name);
       formData.append("description", description);
 
-      // Nếu image là File (object) append, còn nếu là string (url) thì không gửi file
       if (image && typeof image === "object") {
         formData.append("image", image);
       }
 
       formData.append("quantity", parseInt(quantity || 0, 10));
+      formData.append("published_date", publishedDate);
 
       const finalAuthor = authorMode === "new" ? newAuthor : author;
       formData.append("author", finalAuthor);
@@ -271,11 +271,9 @@ const BookManage = () => {
       formData.append("category", finalCategory);
 
       if (editingBookId) {
-        // cập nhật
         await authApis().patch(`/books/${editingBookId}`, formData);
         alert("Cập nhật sách thành công");
       } else {
-        // tạo mới
         await authApis().post(`/books/`, formData);
         alert("Thêm sách thành công");
       }
@@ -369,6 +367,18 @@ const BookManage = () => {
                         min="0"
                         className="w-full px-3 py-3 border border-gray-300 rounded-lg"
                         placeholder="Nhập số lượng"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Ngày xuất bản
+                      </label>
+                      <input
+                        type="date"
+                        value={publishedDate}
+                        onChange={(e) => setPublishedDate(e.target.value)}
+                        className="w-full px-3 py-3 border border-gray-300 rounded-lg"
+                        placeholder="Chọn ngày xuất bản"
                       />
                     </div>
                   </div>
@@ -689,10 +699,9 @@ const BookManage = () => {
                 onChange={(e) => setSortBy(e.target.value)}
                 className="w-full p-2 border rounded"
               >
-                <option value="all">Mặc định</option>
+                <option value="newest">Mới nhất</option>
                 <option value="name-asc">Tên A-Z</option>
                 <option value="name-desc">Tên Z-A</option>
-                <option value="newest">Mới nhất</option>
               </select>
             </div>
 
