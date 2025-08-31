@@ -30,7 +30,8 @@ Server (Backend):
   cd server
   # Tạo môi trường ảo
   cd app
-  python -m venv venv
+  python -m venv venv (macos)
+  py -m venv .venv (window)
 
   # Kích hoạt môi trường ảo
   # Trên Windows
