@@ -21,7 +21,7 @@ def create_app():
         resources={r"/*": {"origins": "*"}},
         supports_credentials=True,
         allow_headers="*",
-        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+        methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"]
     )
     login_manager.init_app(app)
     admin_manager.init_app(app, index_view=MyAdminIndexView())
