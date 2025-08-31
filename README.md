@@ -35,7 +35,7 @@ Server (Backend):
 
   # Kích hoạt môi trường ảo
   # Trên Windows
-  venv\Scripts\activate
+  .venv\Scripts\activate
   # Trên macOS/Linux
   source venv/bin/activate
 ```
