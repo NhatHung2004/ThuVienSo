@@ -1,6 +1,6 @@
 import { ChevronFirst, ChevronLast, MoreVertical } from "lucide-react";
 import { useContext, createContext, useState, useRef, useEffect } from "react";
-import { MyUserContext } from "../../configs/MyContext";
+import { MyUserContext, MyUserDispatchContext } from "../../configs/MyContext";
 import { useNavigate } from "react-router-dom";
 
 const SidebarContext = createContext();
@@ -12,6 +12,7 @@ export default function Sidebar({ children }) {
   const iconRef = useRef(null); // NEW
   const user = useContext(MyUserContext);
   const navigate = useNavigate();
+  const dispatch = useContext(MyUserDispatchContext);
 
   // 👇 Auto close dropdown when clicking outside
   useEffect(() => {
@@ -74,12 +75,6 @@ export default function Sidebar({ children }) {
               </h4>
               <span className="text-xs text-gray-600">{user.email}</span>
             </div>
-            <MoreVertical
-              size={20}
-              className="ml-auto cursor-pointer"
-              onClick={() => setMenuOpen((prev) => !prev)}
-              ref={iconRef}
-            />
           </div>
 
           {expanded && (
@@ -117,7 +112,8 @@ export default function Sidebar({ children }) {
                   className="py-2 px-3 hover:bg-gray-800 rounded cursor-pointer"
                   onClick={() => {
                     // logout logic here
-                    navigate("/Login", { replace: true });
+                    navigate("/", { replace: true });
+                    dispatch({ type: "logout" });
                   }}
                 >
                   Log out

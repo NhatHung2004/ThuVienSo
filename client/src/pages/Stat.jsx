@@ -274,7 +274,6 @@ const Stat = () => {
           text="Duyệt mượn"
           to="/book-request"
         />
-        <SidebarItem icon={<BarChart2 />} text="Thống kê" to="/stat" />
       </Sidebar>
 
       <div className="flex-1 p-6">
