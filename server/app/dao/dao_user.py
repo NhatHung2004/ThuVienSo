@@ -2,8 +2,13 @@ from app import db
 from app.models import User, Request, UserRole
 import bcrypt
 
-def create_user(username, email, password, role=None, avatar=None, firstname=None, lastname=None):
-    password = str(bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8'))
+def create_user(username, email, password=None, role=None, avatar=None, firstname=None, lastname=None):
+    user = User.query.filter_by(email=email).first()
+
+    if user is not None:
+        return user
+    if password is not None:
+        password = str(bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8'))
 
     if role is None:
         user = User(username=username, email=email, password=password, firstname=firstname, lastname=lastname, avatar=avatar)
