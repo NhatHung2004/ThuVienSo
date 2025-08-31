@@ -30,7 +30,8 @@ Server (Backend):
   cd server
   # Tạo môi trường ảo
   cd app
-  python -m venv venv
+  python -m venv venv (macos)
+  py -m venv .venv (window)
 
   # Kích hoạt môi trường ảo
   # Trên Windows
@@ -47,7 +48,7 @@ Server (Backend):
 - Tạo một file .env trong thư mục server và thêm các biến môi trường cần thiết:
 
 ```bash
-  MYSQL_PASSWORD=your-password
+  DATABASE_URL=your_database
   CLOUDINARY_NAME=your-cloud-name
   CLOUD_API_KEY=your-api-key
   CLOUD_API_SECRET=your-secret-key
