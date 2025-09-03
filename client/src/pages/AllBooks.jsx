@@ -1,21 +1,31 @@
 import React, { useEffect, useState } from "react";
 import Book2 from "../components/layouts/Book2";
-import LoginRequire from "../components/layouts/LoginRequire";
 import { Apis } from "../configs/Apis";
 import { useSearchParams } from "react-router-dom";
 
 const AllBooks = () => {
   const [books, setBooks] = useState([]);
   const [cates, setCates] = useState([]);
-  const [authors, setAuthors] = useState([]); // New state for authors
+  const [authors, setAuthors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filteredBooks, setFilteredBooks] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedAuthor, setSelectedAuthor] = useState(""); // New state for selected author
+  const [selectedAuthor, setSelectedAuthor] = useState("");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [isSearched, setIsSearched] = useState(false);
   const [searchParams] = useSearchParams();
+
+  // Hàm lấy danh sách sách liên quan
+  const getRelatedBooks = (book) => {
+    return books
+      .filter(
+        (b) =>
+          b.id !== book.id &&
+          (b.author_id === book.author_id || b.category_id === book.category_id)
+      )
+      .slice(0, 4); // Giới hạn lấy 4 cuốn sách liên quan
+  };
 
   const fetchCategories = async () => {
     setLoading(true);
@@ -35,7 +45,6 @@ const AllBooks = () => {
     try {
       const res = await Apis.get("/books/");
       setBooks(res.data);
-      console.log(res.data);
     } catch {
       setLoading(false);
       console.log("Có lỗi khi tải danh sách sách");
@@ -48,8 +57,7 @@ const AllBooks = () => {
     setLoading(true);
     try {
       const res = await Apis.get("/authors");
-      setAuthors(res.data); // Store authors in state
-      console.log(res.data);
+      setAuthors(res.data);
     } catch {
       setLoading(false);
       console.log("Có lỗi khi tải danh sách tác giả");
@@ -58,11 +66,9 @@ const AllBooks = () => {
     }
   };
 
-  // Updated filterBooks to include author filtering
   const filterBooks = (query, category, author) => {
     let filtered = [...books];
 
-    // Filter by search query
     if (query.trim()) {
       const trimmedQuery = query.trim().toLowerCase();
       filtered = filtered.filter(
@@ -73,33 +79,27 @@ const AllBooks = () => {
       );
     }
 
-    // Filter by category
     if (category && category !== "") {
-      filtered = filtered.filter((book) => {
-        return (
+      filtered = filtered.filter(
+        (book) =>
           book.category?.id === category.id ||
           book.category?.name === category.name ||
           book.category_id === category.id
-        );
-      });
+      );
     }
 
-    // Filter by author
     if (author && author !== "") {
-      filtered = filtered.filter((book) => {
-        // Adjust based on your book data structure
-        return (
+      filtered = filtered.filter(
+        (book) =>
           book.author?.id === author.id ||
           book.author?.name === author.name ||
           book.author_id === author.id
-        );
-      });
+      );
     }
 
     return filtered;
   };
 
-  // Handle category selection
   const handleCategorySelect = (category) => {
     setSelectedCategory(category);
     const filtered = filterBooks(searchQuery, category, selectedAuthor);
@@ -112,7 +112,6 @@ const AllBooks = () => {
     }
   };
 
-  // Handle author selection
   const handleAuthorSelect = (author) => {
     setSelectedAuthor(author);
     const filtered = filterBooks(searchQuery, selectedCategory, author);
@@ -125,7 +124,6 @@ const AllBooks = () => {
     }
   };
 
-  // Updated resetFilters to include author
   const resetFilters = () => {
     setSearchQuery("");
     setSelectedCategory("");
@@ -202,7 +200,6 @@ const AllBooks = () => {
             Tất cả những đầu sách có trong thư viện, tìm kiếm sách bạn cần.
           </p>
 
-          {/* Thanh tìm kiếm */}
           <div className="max-w-2xl mx-auto mt-8">
             <form onSubmit={handleSearch} className="relative">
               <input
@@ -234,7 +231,6 @@ const AllBooks = () => {
             </form>
           </div>
 
-          {/* Hiển thị filters đã chọn */}
           {(searchQuery.trim() || selectedCategory || selectedAuthor) && (
             <div className="max-w-2xl mx-auto mt-4">
               <div className="flex flex-wrap gap-2 items-center">
@@ -315,7 +311,6 @@ const AllBooks = () => {
             </div>
           )}
 
-          {/* Nút hiển thị bộ lọc trên mobile */}
           <div className="md:hidden mt-6">
             <button
               onClick={() => setShowMobileFilters(!showMobileFilters)}
@@ -338,7 +333,6 @@ const AllBooks = () => {
           </div>
 
           <div className="flex flex-col md:flex-row gap-6 mt-6">
-            {/* Bộ lọc danh mục - Sidebar bên trái */}
             <div
               className={`${
                 showMobileFilters ? "block" : "hidden"
@@ -381,7 +375,6 @@ const AllBooks = () => {
                 ))}
               </ul>
 
-              {/* Bộ lọc tác giả - Thêm ngay dưới danh mục sách */}
               <div className="mt-6 pt-4 border-t border-gray-200">
                 <h2 className="text-xl font-bold mb-4 text-gray-700">
                   Tác giả
@@ -415,55 +408,8 @@ const AllBooks = () => {
                   ))}
                 </ul>
               </div>
-
-              {/* Bộ lọc bổ sung */}
-              <div className="mt-6 pt-4 border-t border-gray-200">
-                <h3 className="font-semibold text-gray-700 mb-3">Lọc theo</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="new-books"
-                      className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
-                    />
-                    <label
-                      htmlFor="new-books"
-                      className="ml-2 text-gray-700 cursor-pointer"
-                    >
-                      Sách mới nhất
-                    </label>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="high-rated"
-                      className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
-                    />
-                    <label
-                      htmlFor="high-rated"
-                      className="ml-2 text-gray-700 cursor-pointer"
-                    >
-                      Được đánh giá cao
-                    </label>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="available"
-                      className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
-                    />
-                    <label
-                      htmlFor="available"
-                      className="ml-2 text-gray-700 cursor-pointer"
-                    >
-                      Có sẵn để mượn
-                    </label>
-                  </div>
-                </div>
-              </div>
             </div>
 
-            {/* Danh sách sách - Nội dung chính bên phải */}
             <div className="w-full md:w-3/4">
               <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between">
@@ -493,7 +439,11 @@ const AllBooks = () => {
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {displayBooks.length > 0 ? (
                   displayBooks.map((book) => (
-                    <Book2 key={book.id} book={book} />
+                    <Book2
+                      key={book.id}
+                      book={book}
+                      relatedBooks={getRelatedBooks(book)} // Truyền sách liên quan
+                    />
                   ))
                 ) : (
                   <div className="col-span-full text-center text-gray-500 text-lg py-10">

@@ -115,7 +115,6 @@ class RequestDeclined(Resource):
 class RequestReturned(Resource):
     @request_ns.marshal_with(request_model)
     @jwt_required()
-    @role_required([UserRole.LIBRARIAN.value])
     def patch(self, request_id):
         """ Trả sách """
         req = dao_request.return_books(request_id)

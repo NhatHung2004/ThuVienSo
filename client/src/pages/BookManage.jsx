@@ -12,28 +12,40 @@ import {
   Search,
   X,
 } from "lucide-react";
-
 import { useNavigate } from "react-router-dom";
 
 const BookManage = () => {
   const [loading, setLoading] = useState(false);
   const [cates, setCates] = useState([]);
+  const [authors, setAuthors] = useState([]);
   const [books, setBooks] = useState([]);
   const [filteredBooks, setFilteredBooks] = useState([]);
+
+  // form states
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [image, setImage] = useState("");
+  const [image, setImage] = useState(""); // File or null
   const [quantity, setQuantity] = useState("");
-  const [author, setAuthor] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const [author, setAuthor] = useState(""); // used when authorMode === 'select'
+  const [selectedCategory, setSelectedCategory] = useState(""); // cate.name
+  const [publishedDate, setPublishedDate] = useState(""); // New state for published_date
   const [openDialog, setOpenDialog] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
 
-  // States cho tìm kiếm và lọc
+  // author/category modes
+  const [authorMode, setAuthorMode] = useState("select"); // "select" | "new"
+  const [categoryMode, setCategoryMode] = useState("select"); // "select" | "new"
+  const [newAuthor, setNewAuthor] = useState("");
+  const [newCategory, setNewCategory] = useState("");
+
+  // edit state
+  const [editingBookId, setEditingBookId] = useState(null); // null = creating
+
+  // search & filter
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [sortBy, setSortBy] = useState("all");
+  const [sortBy, setSortBy] = useState("newest"); // Default to newest
 
   const navigate = useNavigate();
 
@@ -41,12 +53,10 @@ const BookManage = () => {
     setLoading(true);
     try {
       const res = await Apis.get("/books/");
-      setBooks(res.data);
-      setFilteredBooks(res.data);
-      console.log(res.data);
-    } catch {
-      setLoading(false);
-      console.log("Có lỗi khi tải danh sách sách");
+      setBooks(res.data || []);
+      setFilteredBooks(res.data || []);
+    } catch (err) {
+      console.error("Có lỗi khi tải danh sách sách", err);
     } finally {
       setLoading(false);
     }
@@ -56,49 +66,63 @@ const BookManage = () => {
     setLoading(true);
     try {
       const res = await Apis.get("/categories/");
-      setCates(res.data);
-      if (res.data.length > 0) setSelectedCategory(res.data[0].name);
-    } catch {
-      setLoading(false);
-      console.log("Có lỗi khi tải danh sách sách phân loại");
+      setCates(res.data || []);
+      if ((res.data || []).length > 0 && !selectedCategory)
+        setSelectedCategory(res.data[0].name);
+    } catch (err) {
+      console.error("Có lỗi khi tải danh sách thể loại", err);
     } finally {
       setLoading(false);
     }
   };
 
-  // Hàm tìm kiếm và lọc
+  const fetchAuthor = async () => {
+    setLoading(true);
+    try {
+      const res = await Apis.get("/authors/");
+      setAuthors(res.data || []);
+    } catch (err) {
+      console.error("Có lỗi khi tải danh sách tác giả", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // filter and sort logic
   const filterBooks = () => {
     let filtered = [...books];
 
-    // Tìm kiếm theo tên sách hoặc tác giả
+    // Search filter
     if (searchTerm.trim()) {
       filtered = filtered.filter((book) => {
         const title = book.title || "";
-        const author = book.author || "";
+        const authorName = book.author || "";
         return (
           title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          author.toLowerCase().includes(searchTerm.toLowerCase())
+          authorName.toLowerCase().includes(searchTerm.toLowerCase())
         );
       });
     }
 
-    // Lọc theo thể loại
+    // Category filter
     if (filterCategory && filterCategory !== "all") {
-      filtered = filtered.filter(
-        (book) =>
+      filtered = filtered.filter((book) => {
+        return (
           book.category_id === parseInt(filterCategory) ||
-          book.category === parseInt(filterCategory)
-      );
+          String(book.category) === String(filterCategory) ||
+          String(book.category_id) === String(filterCategory)
+        );
+      });
     }
 
-    // Lọc theo trạng thái
+    // Status filter
     if (filterStatus === "available") {
       filtered = filtered.filter((book) => (book.quantity || 0) > 0);
     } else if (filterStatus === "unavailable") {
       filtered = filtered.filter((book) => (book.quantity || 0) === 0);
     }
 
-    // Sắp xếp
+    // Sort logic
     if (sortBy === "name-asc") {
       filtered = filtered.sort((a, b) =>
         (a.title || "").localeCompare(b.title || "")
@@ -111,60 +135,26 @@ const BookManage = () => {
       filtered = filtered.sort((a, b) => {
         const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
         const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
-        return dateB - dateA;
+        return dateB - dateA; // Newest first
       });
     }
 
     setFilteredBooks(filtered);
   };
 
-  // Gọi filterBooks khi có thay đổi trong tìm kiếm/lọc
   useEffect(() => {
     filterBooks();
   }, [searchTerm, filterCategory, filterStatus, sortBy, books]);
 
-  const addBook = async () => {
-    try {
-      setLoading(true);
-      const formData = new FormData();
-      formData.append("title", name);
-      formData.append("description", description);
-      formData.append("image", image); // File object
-      formData.append("quantity", parseInt(quantity));
-      formData.append("author", author);
-      formData.append("category", selectedCategory);
-
-      const res = await authApis().post("/books/", formData);
-      alert("Thêm sách thành công:", res.data);
-
-      // Đóng dialog và reset form
-      setOpenDialog(false);
-      resetForm();
-
-      // Cập nhật danh sách sách
-      fetchBooks();
-    } catch (error) {
-      console.error("Có lỗi khi thêm sách:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const resetForm = () => {
-    setName("");
-    setDescription("");
-    setImage("");
-    setPreviewUrl(null);
-    setQuantity("");
-    setAuthor("");
-    if (cates.length > 0) setSelectedCategory(cates[0].name);
-  };
-
+  // Initial data
   useEffect(() => {
     fetchBooks();
     fetchCategories();
+    fetchAuthor();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // image change
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -174,134 +164,464 @@ const BookManage = () => {
     }
   };
 
+  // mở dialog để tạo mới
+  const openCreateDialog = () => {
+    resetForm();
+    setOpenDialog(true);
+  };
+
+  // mở dialog để sửa
+  const openEditDialog = (book) => {
+    setEditingBookId(book.id);
+
+    const bookAuthor = book.author || book.author_name || "";
+    const foundAuthor = authors.find((a) => a.name === bookAuthor);
+    if (foundAuthor) {
+      setAuthorMode("select");
+      setAuthor(foundAuthor.name);
+      setNewAuthor("");
+    } else {
+      setAuthorMode("new");
+      setNewAuthor(bookAuthor);
+      setAuthor("");
+    }
+
+    let catName = "";
+    if (book.category) catName = book.category;
+    else if (book.category_name) catName = book.category_name;
+    else if (book.category_id && cates.length > 0) {
+      const found = cates.find(
+        (c) => Number(c.id) === Number(book.category_id)
+      );
+      if (found) catName = found.name;
+    }
+
+    if (catName) {
+      setCategoryMode("select");
+      setSelectedCategory(catName);
+      setNewCategory("");
+    } else {
+      setCategoryMode("new");
+      setNewCategory("");
+    }
+
+    setName(book.title || "");
+    setDescription(book.description || "");
+    setQuantity(String(book.quantity || ""));
+    setPublishedDate(book.published_date || "");
+
+    if (book.image) {
+      setPreviewUrl(book.image);
+      setImage(book.image);
+    } else {
+      setPreviewUrl(null);
+      setImage("");
+    }
+
+    setOpenDialog(true);
+  };
+
+  // reset form
+  const resetForm = () => {
+    setName("");
+    setDescription("");
+    setImage("");
+    setPreviewUrl(null);
+    setQuantity("");
+    setAuthor("");
+    setNewAuthor("");
+    setNewCategory("");
+    setPublishedDate("");
+    setAuthorMode("select");
+    setCategoryMode("select");
+    setEditingBookId(null);
+    if (cates.length > 0) setSelectedCategory(cates[0].name);
+  };
+
+  // kiểm tra validation
+  const isFormValid = () => {
+    const hasName = name.trim();
+    const hasQuantity = String(quantity).trim() !== "";
+    const hasAuthor = authorMode === "new" ? newAuthor.trim() : author.trim();
+    const hasCategory =
+      categoryMode === "new" ? newCategory.trim() : selectedCategory;
+    return hasName && hasQuantity && hasAuthor && hasCategory;
+  };
+
+  // submit (tạo mới hoặc cập nhật)
+  const handleSubmit = async () => {
+    try {
+      setLoading(true);
+      const formData = new FormData();
+      formData.append("title", name);
+      formData.append("description", description);
+
+      if (image && typeof image === "object") {
+        formData.append("image", image);
+      }
+
+      formData.append("quantity", parseInt(quantity || 0, 10));
+      formData.append("published_date", publishedDate);
+
+      const finalAuthor = authorMode === "new" ? newAuthor : author;
+      formData.append("author", finalAuthor);
+
+      const finalCategory =
+        categoryMode === "new" ? newCategory : selectedCategory;
+      formData.append("category", finalCategory);
+
+      if (editingBookId) {
+        await authApis().patch(`/books/${editingBookId}`, formData);
+        alert("Cập nhật sách thành công");
+      } else {
+        await authApis().post(`/books/`, formData);
+        alert("Thêm sách thành công");
+      }
+
+      setOpenDialog(false);
+      resetForm();
+      fetchBooks();
+    } catch (err) {
+      console.error("Lỗi khi lưu sách", err);
+      alert("Có lỗi khi lưu sách");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteBook = async (id) => {
+    const confirmDelete = window.confirm(
+      "Bạn có chắc muốn xóa cuốn sách này không?"
+    );
+    if (!confirmDelete) return;
+    try {
+      setLoading(true);
+      await authApis().delete(`/books/${id}`);
+      alert("Đã xóa sách thành công");
+      fetchBooks();
+    } catch (err) {
+      console.error(err);
+      alert("Có lỗi khi xóa sách");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex h-screen">
-      {/* Dialog thêm sách */}
+      {/* Dialog thêm/sửa sách */}
       {openDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
-            <div className="flex justify-between items-center border-b p-4">
-              <h3 className="text-lg font-semibold">Thêm sách mới</h3>
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-30 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 border border-gray-100">
+            <div className="flex justify-between items-center border-b border-gray-200 px-8 py-6 bg-gray-50">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-800">
+                  {editingBookId ? "✏️ Cập nhật sách" : "📚 Thêm sách mới"}
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  Điền thông tin chi tiết để lưu sách
+                </p>
+              </div>
               <button
-                onClick={() => setOpenDialog(false)}
-                className="text-gray-500 hover:text-gray-700"
+                onClick={() => {
+                  setOpenDialog(false);
+                  setEditingBookId(null);
+                }}
+                className="text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg p-2 transition-all"
               >
-                <X size={20} />
+                <X size={24} />
               </button>
             </div>
 
-            <div className="p-6 max-h-[70vh] overflow-y-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tên sách <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    placeholder="Nhập tên sách"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tác giả <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={author}
-                    onChange={(e) => setAuthor(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    placeholder="Nhập tên tác giả"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Thể loại <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  >
-                    {cates.map((cate) => (
-                      <option key={cate.id} value={cate.id}>
-                        {cate.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Số lượng <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    placeholder="Nhập số lượng"
-                    min="0"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Mô tả
-                  </label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows="3"
-                    className="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    placeholder="Nhập mô tả sách"
-                  ></textarea>
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Hình ảnh sách
-                  </label>
-                  <input
-                    type="file"
-                    onChange={handleImageChange}
-                    className="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  />
-                  {previewUrl && (
-                    <div className="mt-2">
-                      <img
-                        src={previewUrl}
-                        alt="Preview"
-                        className="max-h-40 rounded border"
+            <div className="p-8 max-h-[75vh] overflow-y-auto">
+              <div className="space-y-6">
+                {/* Section 1 */}
+                <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                  <h4 className="text-base font-semibold text-gray-800 mb-4 flex items-center">
+                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-3">
+                      <span className="text-gray-600 font-bold text-sm">1</span>
+                    </div>
+                    Thông tin cơ bản
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Tên sách <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full px-3 py-3 border border-gray-300 rounded-lg"
+                        placeholder="Nhập tên sách"
                       />
                     </div>
-                  )}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Số lượng <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        value={quantity}
+                        onChange={(e) => setQuantity(e.target.value)}
+                        min="0"
+                        className="w-full px-3 py-3 border border-gray-300 rounded-lg"
+                        placeholder="Nhập số lượng"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Ngày xuất bản
+                      </label>
+                      <input
+                        type="date"
+                        value={publishedDate}
+                        onChange={(e) => setPublishedDate(e.target.value)}
+                        className="w-full px-3 py-3 border border-gray-300 rounded-lg"
+                        placeholder="Chọn ngày xuất bản"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 2: tác giả */}
+                <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                  <h4 className="text-base font-semibold text-gray-800 mb-4 flex items-center">
+                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-3">
+                      <span className="text-gray-600 font-bold text-sm">2</span>
+                    </div>
+                    Thông tin tác giả
+                  </h4>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Tác giả <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex gap-2 mb-3">
+                      <button
+                        type="button"
+                        onClick={() => setAuthorMode("select")}
+                        className={`px-4 py-2 text-sm font-medium rounded-lg ${
+                          authorMode === "select"
+                            ? "bg-blue-500 text-white"
+                            : "bg-white text-gray-700 border"
+                        }`}
+                      >
+                        📋 Chọn có sẵn
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAuthorMode("new")}
+                        className={`px-4 py-2 text-sm font-medium rounded-lg ${
+                          authorMode === "new"
+                            ? "bg-blue-500 text-white"
+                            : "bg-white text-gray-700 border"
+                        }`}
+                      >
+                        ➕ Thêm mới
+                      </button>
+                    </div>
+                    {authorMode === "select" ? (
+                      <select
+                        value={author}
+                        onChange={(e) => setAuthor(e.target.value)}
+                        className="w-full px-3 py-3 border border-gray-300 rounded-lg bg-white"
+                      >
+                        <option value="">-- Chọn tác giả --</option>
+                        {authors.map((a) => (
+                          <option key={a.id || a.name} value={a.name}>
+                            {a.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={newAuthor}
+                        onChange={(e) => setNewAuthor(e.target.value)}
+                        className="w-full px-3 py-3 border border-gray-300 rounded-lg"
+                        placeholder="Nhập tên tác giả mới"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* Section 3: thể loại */}
+                <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                  <h4 className="text-base font-semibold text-gray-800 mb-4 flex items-center">
+                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-3">
+                      <span className="text-gray-600 font-bold text-sm">3</span>
+                    </div>
+                    Phân loại sách
+                  </h4>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Thể loại <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex gap-2 mb-3">
+                      <button
+                        type="button"
+                        onClick={() => setCategoryMode("select")}
+                        className={`px-4 py-2 text-sm font-medium rounded-lg ${
+                          categoryMode === "select"
+                            ? "bg-blue-500 text-white"
+                            : "bg-white text-gray-700 border"
+                        }`}
+                      >
+                        📚 Chọn có sẵn
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCategoryMode("new")}
+                        className={`px-4 py-2 text-sm font-medium rounded-lg ${
+                          categoryMode === "new"
+                            ? "bg-blue-500 text-white"
+                            : "bg-white text-gray-700 border"
+                        }`}
+                      >
+                        🆕 Tạo mới
+                      </button>
+                    </div>
+                    {categoryMode === "select" ? (
+                      <select
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        className="w-full px-3 py-3 border border-gray-300 rounded-lg bg-white"
+                      >
+                        <option value="">-- Chọn thể loại --</option>
+                        {cates.map((cate) => (
+                          <option key={cate.id} value={cate.name}>
+                            {cate.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="space-y-3">
+                        <input
+                          type="text"
+                          value={newCategory}
+                          onChange={(e) => setNewCategory(e.target.value)}
+                          className="w-full px-3 py-3 border border-gray-300 rounded-lg"
+                          placeholder="Nhập tên thể loại mới"
+                        />
+                        <button
+                          onClick={async () => {
+                            if (!newCategory.trim()) {
+                              alert("Vui lòng nhập tên thể loại mới!");
+                              return;
+                            }
+                            try {
+                              setLoading(true);
+                              const res = await authApis().post(
+                                "/categories/",
+                                { name: newCategory }
+                              );
+                              setCates((prev) => [...prev, res.data]);
+                              setCategoryMode("select");
+                              setSelectedCategory(res.data.name);
+                              setNewCategory("");
+                              alert("Thêm thể loại thành công");
+                            } catch (err) {
+                              console.error(err);
+                              alert("Có lỗi khi thêm thể loại");
+                            } finally {
+                              setLoading(false);
+                            }
+                          }}
+                          disabled={loading || !newCategory.trim()}
+                          className={`w-full px-4 py-2 rounded-lg font-medium ${
+                            loading || !newCategory.trim()
+                              ? "bg-gray-300 text-gray-500"
+                              : "bg-green-600 text-white"
+                          }`}
+                        >
+                          {loading ? "Đang thêm..." : "Thêm thể loại mới"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Section 4: mô tả & ảnh */}
+                <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                  <h4 className="text-base font-semibold text-gray-800 mb-4 flex items-center">
+                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-3">
+                      <span className="text-gray-600 font-bold text-sm">4</span>
+                    </div>
+                    Mô tả & Hình ảnh
+                  </h4>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Mô tả sách
+                      </label>
+                      <textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        rows={4}
+                        className="w-full px-3 py-3 border border-gray-300 rounded-lg resize-none"
+                        placeholder="Nhập mô tả..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Hình ảnh bìa sách
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          onChange={handleImageChange}
+                          accept="image/*"
+                          className="w-full px-3 py-3 border-2 border-dashed rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gray-100"
+                        />
+                      </div>
+                      {previewUrl && (
+                        <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
+                          <p className="text-sm text-gray-600 mb-2">
+                            Xem trước:
+                          </p>
+                          <img
+                            src={previewUrl}
+                            alt="Preview"
+                            className="max-h-48 rounded-lg border"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="border-t p-4 flex justify-end gap-3">
-              <button
-                onClick={() => setOpenDialog(false)}
-                className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={addBook}
-                disabled={loading || !name || !author || !quantity}
-                className={`px-4 py-2 rounded text-white ${
-                  loading || !name || !author || !quantity
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-[#2563eb] hover:bg-[#1d4ed8]"
-                }`}
-              >
-                {loading ? "Đang thêm..." : "Thêm sách"}
-              </button>
+            <div className="border-t bg-gray-50 px-8 py-6 flex justify-between items-center">
+              <div className="text-sm text-gray-600">
+                <span className="text-red-500">*</span> Các trường bắt buộc
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setOpenDialog(false);
+                    resetForm();
+                  }}
+                  className="px-6 py-2.5 border-2 border-gray-300 rounded-lg text-gray-700"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={loading || !isFormValid()}
+                  className={`px-8 py-2.5 rounded-lg font-medium ${
+                    loading || !isFormValid()
+                      ? "bg-gray-300 text-gray-500"
+                      : "bg-blue-600 text-white"
+                  }`}
+                >
+                  {loading
+                    ? "Đang lưu..."
+                    : editingBookId
+                    ? "Cập nhật"
+                    : "Thêm sách"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -314,14 +634,11 @@ const BookManage = () => {
           text="Duyệt mượn"
           to="/book-request"
         />
-        <SidebarItem icon={<BarChart2 />} text="Thống kê" to="/stat" />
       </Sidebar>
 
-      {/* Nội dung chính */}
       <div className="flex-1 p-4 overflow-auto">
         <h1 className="text-xl font-bold mb-6">Trang quản lý thư viện</h1>
 
-        {/* Phần tìm kiếm và bộ lọc */}
         <div className="bg-white p-4 rounded-lg shadow mb-6">
           <div className="flex flex-wrap gap-4 items-end">
             <div className="flex-1 min-w-[200px]">
@@ -334,7 +651,7 @@ const BookManage = () => {
                   placeholder="Nhập tên sách, tác giả,..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded pl-10 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="w-full p-2 border rounded pl-10"
                 />
                 <Search className="absolute left-3 top-2.5 text-gray-400 h-5 w-5" />
               </div>
@@ -347,12 +664,12 @@ const BookManage = () => {
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="w-full p-2 border rounded"
               >
                 <option value="all">Tất cả</option>
-                {cates.map((cate) => (
-                  <option key={cate.id} value={cate.id}>
-                    {cate.name}
+                {cates.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
                   </option>
                 ))}
               </select>
@@ -365,7 +682,7 @@ const BookManage = () => {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="w-full p-2 border rounded"
               >
                 <option value="all">Tất cả</option>
                 <option value="available">Còn sách</option>
@@ -380,28 +697,25 @@ const BookManage = () => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="w-full p-2 border rounded"
               >
-                <option value="all">Mặc định</option>
+                <option value="newest">Mới nhất</option>
                 <option value="name-asc">Tên A-Z</option>
                 <option value="name-desc">Tên Z-A</option>
-                <option value="newest">Mới nhất</option>
               </select>
             </div>
 
             <button
-              onClick={() => setOpenDialog(true)}
-              className="bg-[#2563eb] text-white px-4 py-2 rounded hover:bg-[#1d4ed8] transition h-[42px] font-medium"
+              onClick={openCreateDialog}
+              className="bg-[#2563eb] text-white px-4 py-2 rounded"
             >
               Thêm sách
             </button>
           </div>
         </div>
 
-        {/* Ngăn cách */}
         <div className="border-t border-gray-200 my-4"></div>
 
-        {/* Bảng danh sách sách */}
         <div className="bg-white p-4 rounded-lg shadow">
           <h2 className="text-lg font-semibold mb-4">Danh sách sách</h2>
           <p className="text-gray-600 mb-4">
@@ -413,16 +727,16 @@ const BookManage = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
                 <tr className="bg-blue-50">
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
                     Sách
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
                     Trạng thái
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
                     Đánh giá
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
                     Thao tác
                   </th>
                 </tr>
@@ -431,7 +745,7 @@ const BookManage = () => {
                 {filteredBooks.length === 0 ? (
                   <tr>
                     <td
-                      colSpan="4"
+                      colSpan={4}
                       className="px-6 py-8 text-center text-gray-500"
                     >
                       Không tìm thấy sách nào phù hợp
@@ -477,6 +791,7 @@ const BookManage = () => {
                           <button
                             className="text-blue-600 hover:text-blue-800"
                             title="Sửa"
+                            onClick={() => openEditDialog(book)}
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
@@ -503,6 +818,7 @@ const BookManage = () => {
                           </button>
                           <button
                             className="text-red-600 hover:text-red-800"
+                            onClick={() => deleteBook(book.id)}
                             title="Xóa"
                           >
                             <svg

@@ -41,6 +41,13 @@ const InformationProvide = () => {
     agreeNotifications: false,
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [progress, setProgress] = useState({
+    current: 0,
+    total: 0,
+    message: "",
+  });
+
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -49,61 +56,114 @@ const InformationProvide = () => {
   };
 
   const nextStep = async () => {
+    if (isSubmitting) return; // tránh double click khi đang submit
+
     if (currentStep < 4) {
       setCurrentStep(currentStep + 1);
-    } else {
-      // Xử lý gửi request khi ở bước 4
-      if (!formData.agreeTerms1 || !formData.agreeTerms2) {
-        alert("Bạn cần đồng ý với các điều khoản bắt buộc!");
-        return;
-      }
+      return;
+    }
 
-      const payload = {
-        user_id: user.id,
-        books: selectedBooks.map((item) => ({
-          book_id: item.id,
-          quantity: item.quantity,
-        })),
-        borrowing_method: formData.receiveMethod,
-        purpose: formData.purpose,
-        name: formData.fullName,
-        phone: formData.phone,
-        cccd: formData.cccd,
-        job: formData.profession,
-        address: formData.address,
-        ward: formData.ward,
-        province: formData.district, // Giả sử province là district
-        city: formData.city,
-        number_of_requests_day: parseInt(formData.borrowDays, 10),
-      };
+    // hiện tại đang ở bước 4 => gửi request
+    if (!formData.agreeTerms1 || !formData.agreeTerms2) {
+      alert("Bạn cần đồng ý với các điều khoản bắt buộc!");
+      return;
+    }
 
-      try {
-        const res = await authApis().post("/requests/", payload);
-        console.log("Request thành công: ", res.data);
-        for (const book of selectedBooks) {
-          await authApis().patch(`/carts/`, {
-            cart_id: selectedCartId,
-            book_id: book.id,
-            quantity: book.quantity,
-          });
-          const bookRes = await Apis.get(`/books/${book.id}`);
+    const payload = {
+      user_id: user?.id,
+      books: (selectedBooks || []).map((item) => ({
+        book_id: item.id,
+        quantity: item.quantity,
+      })),
+      borrowing_method:
+        formData.receiveMethod === "Nhận tại thư viện" ||
+        formData.receiveMethod === "DIRECT"
+          ? "DIRECT"
+          : "TRANSPORT",
+      purpose: formData.purpose,
+      name: formData.fullName,
+      phone: formData.phone,
+      cccd: formData.cccd,
+      job: formData.profession,
+      address: formData.address,
+      ward: formData.ward,
+      province: formData.city, // đúng theo backend
+      city: formData.city,
+      number_of_requests_day: 1, // backend dường như expect 1
+    };
 
-          const formData = new FormData();
-          formData.append("quantity", bookRes.data.quantity - book.quantity);
+    console.log("Dữ liệu trước khi gửi đi", payload);
 
-          await authApis().patch(`/books/${book.id}`, formData);
+    setIsSubmitting(true);
+    setProgress({
+      current: 0,
+      total: (selectedBooks || []).length + 1,
+      message: "Gửi yêu cầu",
+    });
+
+    try {
+      const res = await authApis().post("/requests/", payload);
+      console.log("Request thành công: ", res.data);
+
+      // cập nhật progress: đã gửi request
+      setProgress((p) => ({
+        ...p,
+        current: p.current + 1,
+        message: "Cập nhật giỏ hàng và sách",
+      }));
+
+      // xử lý từng sách: cập nhật cart + cập nhật quantity sách
+      for (let i = 0; i < (selectedBooks || []).length; i++) {
+        const book = selectedBooks[i];
+
+        console.log(book.id);
+
+        // cập nhật cart
+        await authApis().patch(`/carts/`, {
+          cart_id: selectedCartId,
+          book_id: book.id,
+          quantity: book.quantity,
+        });
+
+        console.log("test1");
+
+        // lấy thông tin sách hiện tại
+        const bookRes = await Apis.get(`/books/${book.id}`);
+
+        console.log("test2");
+
+        // chuẩn bị form data để patch book
+        const fd = new FormData();
+        fd.append("quantity", bookRes.data.quantity - book.quantity);
+        for (let [key, value] of fd.entries()) {
+          console.log(key, value);
         }
-        alert("Mượn sách thành công!");
-        // Tùy chọn: Xóa sách khỏi giỏ hàng hoặc navigate về trang khác
-        navigate("/cart"); // Ví dụ quay về cart
-      } catch (err) {
-        console.log(err);
-        alert("Có lỗi xảy ra khi gửi yêu cầu!");
+
+        await authApis().patch(`/books/${book.id}`, fd);
+
+        console.log("test3");
+
+        // cập nhật progress từng sách
+        setProgress((p) => ({
+          ...p,
+          current: p.current + 1,
+          message: `Đang xử lý sách ${i + 1}/${(selectedBooks || []).length}`,
+        }));
       }
+
+      alert("Mượn sách thành công!");
+      navigate("/cart");
+    } catch (err) {
+      console.error(err);
+      alert("Có lỗi xảy ra khi gửi yêu cầu!");
+    } finally {
+      setIsSubmitting(false);
+      setProgress({ current: 0, total: 0, message: "" });
     }
   };
 
   const prevStep = () => {
+    if (isSubmitting) return; // không cho back khi đang gửi
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
@@ -140,7 +200,11 @@ const InformationProvide = () => {
   );
 
   const renderStep1 = () => (
-    <div className="space-y-6">
+    <div
+      className={`space-y-6 ${
+        isSubmitting ? "opacity-60 pointer-events-none" : ""
+      }`}
+    >
       <div className="flex items-center space-x-2 text-blue-600 mb-6">
         <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
           <span className="text-sm">👤</span>
@@ -228,7 +292,11 @@ const InformationProvide = () => {
   );
 
   const renderStep2 = () => (
-    <div className="space-y-6">
+    <div
+      className={`space-y-6 ${
+        isSubmitting ? "opacity-60 pointer-events-none" : ""
+      }`}
+    >
       <div className="flex items-center space-x-2 text-blue-600 mb-6">
         <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
           <span className="text-sm">📍</span>
@@ -290,23 +358,16 @@ const InformationProvide = () => {
             />
           </div>
         </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-2">Mã bưu điện</label>
-          <input
-            type="text"
-            value={formData.postalCode}
-            onChange={(e) => handleInputChange("postalCode", e.target.value)}
-            placeholder="Mã bưu điện (không bắt buộc)"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
       </div>
     </div>
   );
 
   const renderStep3 = () => (
-    <div className="space-y-6">
+    <div
+      className={`space-y-6 ${
+        isSubmitting ? "opacity-60 pointer-events-none" : ""
+      }`}
+    >
       <div className="flex items-center space-x-2 text-blue-600 mb-6">
         <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
           <span className="text-sm">📚</span>
@@ -359,64 +420,6 @@ const InformationProvide = () => {
           rows="4"
           className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
         />
-      </div>
-
-      <div className="border-t pt-6">
-        <div className="flex items-center space-x-2 text-gray-700 mb-4">
-          <span className="text-sm">👥</span>
-          <h3 className="font-semibold">Thông tin liên hệ khẩn cấp</h3>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Họ tên <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.emergencyContactName}
-              onChange={(e) =>
-                handleInputChange("emergencyContactName", e.target.value)
-              }
-              placeholder="Tên người liên hệ"
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Số điện thoại <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="tel"
-              value={formData.emergencyContactPhone}
-              onChange={(e) =>
-                handleInputChange("emergencyContactPhone", e.target.value)
-              }
-              placeholder="0123456789"
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Mối quan hệ
-            </label>
-            <select
-              value={formData.relationship}
-              onChange={(e) =>
-                handleInputChange("relationship", e.target.value)
-              }
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Chọn mối quan hệ</option>
-              <option value="Cha mẹ">Cha mẹ</option>
-              <option value="Anh chị em">Anh chị em</option>
-              <option value="Bạn bè">Bạn bè</option>
-              <option value="Đồng nghiệp">Đồng nghiệp</option>
-            </select>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -648,7 +651,24 @@ const InformationProvide = () => {
   );
 
   return (
-    <div className="max-w-6xl mx-auto p-6 bg-gray-50 min-h-screen">
+    <div className="max-w-6xl mx-auto p-6 bg-gray-50 min-h-screen relative">
+      {/* Loading overlay */}
+      {isSubmitting && (
+        <div className="absolute inset-0 bg-black/30 z-40 flex items-center justify-center">
+          <div className="bg-white/90 backdrop-blur-md rounded-lg p-6 w-11/12 max-w-md text-center shadow-lg">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="animate-spin rounded-full border-4 border-t-4 border-gray-200 border-t-blue-600 h-12 w-12"></div>
+              <div className="text-sm font-medium">
+                {progress.message || "Đang xử lý..."}
+              </div>
+              <div className="text-xs text-gray-600">
+                {progress.current}/{progress.total}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header Steps */}
       <div className="bg-white rounded-lg p-6 mb-6 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -696,9 +716,9 @@ const InformationProvide = () => {
             <div className="flex justify-between items-center mt-8 pt-6 border-t">
               <button
                 onClick={prevStep}
-                disabled={currentStep === 1}
+                disabled={currentStep === 1 || isSubmitting}
                 className={`flex items-center space-x-2 px-6 py-3 rounded-lg ${
-                  currentStep === 1
+                  currentStep === 1 || isSubmitting
                     ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                     : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                 }`}
@@ -709,13 +729,20 @@ const InformationProvide = () => {
 
               <button
                 onClick={nextStep}
+                disabled={isSubmitting}
                 className={`flex items-center space-x-2 px-6 py-3 rounded-lg ${
                   currentStep === 4
                     ? "bg-green-500 text-white hover:bg-green-600"
                     : "bg-blue-500 text-white hover:bg-blue-600"
                 }`}
               >
-                <span>{currentStep === 4 ? "Hoàn thành" : "Tiếp tục"}</span>
+                <span>
+                  {isSubmitting
+                    ? "Đang gửi"
+                    : currentStep === 4
+                    ? "Hoàn thành"
+                    : "Tiếp tục"}
+                </span>
                 <span>→</span>
               </button>
             </div>

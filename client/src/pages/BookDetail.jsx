@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import { Apis, authApis } from "../configs/Apis";
 import { MyUserContext } from "../configs/MyContext";
 
@@ -10,33 +10,42 @@ const BookDetail = () => {
   const [author, setAuthor] = useState(null);
   const user = useContext(MyUserContext);
   const navigate = useNavigate();
-
+  const location = useLocation();
+  const [relatedBooks, setRelatedBooks] = useState(
+    location.state?.relatedBooks || []
+  );
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewContent, setReviewContent] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState(null);
 
-  // Lấy book + author cùng lúc
+  // check role — hỗ trợ vài dạng string phổ biến
+  const isLibrarian =
+    user?.role === "ROLE_LIBRARIAN" ||
+    user?.role === "UserRole.LIBRARIAN" ||
+    user?.role === "LIBRARIAN";
+
+  useEffect(() => {
+    console.log(user);
+  }, []);
+
   const fetchBookAndAuthor = async () => {
     try {
-      // Lấy dữ liệu sách
       const bookRes = await Apis.get(`/books/${bookId}`);
       setBook(bookRes.data);
 
-      // Lấy tác giả và bình luận song song
       const [authorRes, commentRes] = await Promise.all([
         Apis.get(`/authors/${bookRes.data.author_id}`),
         Apis.get(`/books/${bookId}/comments`).catch((err) => {
-          // Nếu API trả 404 thì coi như không có bình luận
           if (err.response?.status === 404) return { status: 404, data: [] };
-          throw err; // các lỗi khác ném ra để catch bên ngoài
+          throw err;
         }),
       ]);
 
       setAuthor(authorRes.data);
 
       let commentsWithUser = [];
-
-      // Nếu có bình luận thì mới xử lý map
       if (commentRes.status === 200 && Array.isArray(commentRes.data)) {
         commentsWithUser = await Promise.all(
           commentRes.data.map(async (cmt) => {
@@ -52,10 +61,7 @@ const BookDetail = () => {
             }
           })
         );
-      } else {
-        console.warn("Không có bình luận nào.");
       }
-
       setComments(commentsWithUser);
     } catch (err) {
       console.error("Lỗi khi load dữ liệu:", err);
@@ -65,6 +71,10 @@ const BookDetail = () => {
   const addCart = async () => {
     if (!user) {
       alert("Bạn cần đăng nhập để thêm giỏ hàng");
+      return;
+    }
+    if (isLibrarian) {
+      alert("Tài khoản thủ thư không thể thêm giỏ hàng");
       return;
     }
     try {
@@ -85,6 +95,10 @@ const BookDetail = () => {
       alert("Bạn cần đăng nhập để bình luận!");
       return;
     }
+    if (isLibrarian) {
+      alert("Tài khoản thủ thư không thể viết đánh giá");
+      return;
+    }
     if (!reviewRating || !reviewContent.trim()) {
       alert("Vui lòng nhập đủ thông tin đánh giá!");
       return;
@@ -99,11 +113,36 @@ const BookDetail = () => {
       setShowReviewForm(false);
       setReviewRating(0);
       setReviewContent("");
-      fetchBookAndAuthor(); // Refresh lại comment + rating
+      fetchBookAndAuthor();
     } catch (err) {
       console.error(err);
       alert("Thêm bình luận thất bại!");
     }
+  };
+
+  const handleDeleteComment = (comment) => {
+    setCommentToDelete(comment);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteComment = async () => {
+    if (!commentToDelete) return;
+
+    try {
+      await authApis().delete(`/comments/${commentToDelete.id}`);
+      alert("Xóa bình luận thành công!");
+      setShowDeleteModal(false);
+      setCommentToDelete(null);
+      fetchBookAndAuthor();
+    } catch (err) {
+      console.error(err);
+      alert("Xóa bình luận thất bại!");
+    }
+  };
+
+  const cancelDeleteComment = () => {
+    setShowDeleteModal(false);
+    setCommentToDelete(null);
   };
 
   useEffect(() => {
@@ -125,7 +164,6 @@ const BookDetail = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-      {/* Header */}
       <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
         <button
           onClick={() => navigate(-1)}
@@ -151,15 +189,58 @@ const BookDetail = () => {
         </button>
       </div>
 
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 max-w-md mx-4 shadow-2xl">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <svg
+                  className="h-6 w-6 text-red-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                Xác nhận xóa bình luận
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Bạn có chắc chắn muốn xóa bình luận này? Hành động này không thể
+                hoàn tác.
+              </p>
+              <div className="flex gap-4 justify-center">
+                <button
+                  onClick={confirmDeleteComment}
+                  className="bg-red-600 text-white px-6 py-2 rounded-xl font-semibold hover:bg-red-700 transition-colors duration-200"
+                >
+                  Xóa
+                </button>
+                <button
+                  onClick={cancelDeleteComment}
+                  className="bg-gray-300 text-gray-700 px-6 py-2 rounded-xl font-semibold hover:bg-gray-400 transition-colors duration-200"
+                >
+                  Không
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-          {/* Main Content */}
           <div className="xl:col-span-3">
-            {/* Book Info Card */}
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden mb-8">
               <div className="p-6 md:p-8">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  {/* Book Image */}
                   <div className="lg:col-span-1">
                     <div className="relative group">
                       <img
@@ -170,8 +251,6 @@ const BookDetail = () => {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     </div>
                   </div>
-
-                  {/* Book Details */}
                   <div className="lg:col-span-2 space-y-6">
                     <div>
                       <h1 className="text-3xl md:text-[33px] font-bold text-gray-900 mb-2 leading-tight">
@@ -180,8 +259,6 @@ const BookDetail = () => {
                       <p className="text-xl text-blue-600 font-medium mb-4">
                         Bởi {author.name}
                       </p>
-
-                      {/* Rating */}
                       <div className="flex items-center gap-2 mb-6">
                         <div className="flex">
                           {[...Array(5)].map((_, i) => (
@@ -195,7 +272,7 @@ const BookDetail = () => {
                               fill="currentColor"
                               viewBox="0 0 20 20"
                             >
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3 .921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784 .57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81 .588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                             </svg>
                           ))}
                         </div>
@@ -208,37 +285,35 @@ const BookDetail = () => {
                           ({comments.length} đánh giá)
                         </span>
                       </div>
-
-                      {/* Action Buttons */}
                       <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                        <button
-                          onClick={addCart}
-                          disabled={book.quantity === 0}
-                          className={`bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl ${
-                            book.quantity === 0
-                              ? "opacity-50 cursor-not-allowed"
-                              : "hover:from-blue-700 hover:to-blue-800 transform hover:scale-105"
-                          }`}
-                        >
-                          <svg
-                            className="w-5 h-5 inline mr-2"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                        {!isLibrarian && (
+                          <button
+                            onClick={addCart}
+                            disabled={book.quantity === 0}
+                            className={`bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl ${
+                              book.quantity === 0
+                                ? "opacity-50 cursor-not-allowed"
+                                : "hover:from-blue-700 hover:to-blue-800 transform hover:scale-105"
+                            }`}
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5-6m0 0h12M17 13v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6"
-                            />
-                          </svg>
-                          {book.quantity === 0 ? "Hết sách" : "Thêm vào giỏ"}
-                        </button>
+                            <svg
+                              className="w-5 h-5 inline mr-2"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5-6m0 0h12M17 13v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6"
+                              />
+                            </svg>
+                            {book.quantity === 0 ? "Hết sách" : "Thêm vào giỏ"}
+                          </button>
+                        )}
                       </div>
                     </div>
-
-                    {/* Description */}
                     <div className="bg-gray-50 rounded-xl p-6">
                       <h3 className="text-xl font-bold mb-3 text-gray-900">
                         Mô tả
@@ -247,8 +322,6 @@ const BookDetail = () => {
                         {book.description}
                       </p>
                     </div>
-
-                    {/* Book Info Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="bg-blue-50 rounded-lg p-4 text-center">
                         <div className="text-blue-600 font-semibold text-sm mb-1">
@@ -280,54 +353,54 @@ const BookDetail = () => {
               </div>
             </div>
 
-            {/* Reviews Section */}
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
               <div className="p-6 md:p-8">
                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
                   <h3 className="text-2xl font-bold text-gray-900 mb-4 md:mb-0">
                     Đánh giá & Nhận xét ({comments.length})
                   </h3>
-                  {!showReviewForm ? (
-                    <button
-                      onClick={() => setShowReviewForm(true)}
-                      className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-green-700 hover:to-green-800 transform hover:scale-105 transition-all duration-200 shadow-lg"
-                    >
-                      <svg
-                        className="w-5 h-5 inline mr-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+
+                  {!isLibrarian ? (
+                    !showReviewForm ? (
+                      <button
+                        onClick={() => setShowReviewForm(true)}
+                        className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-green-700 hover:to-green-800 transform hover:scale-105 transition-all duration-200 shadow-lg"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 4v16m8-8H4"
-                        />
-                      </svg>
-                      Viết đánh giá
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        setShowReviewForm(false);
-                        setReviewRating(0);
-                        setReviewContent("");
-                      }}
-                      className="bg-gray-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-gray-600 transition-all duration-200"
-                    >
-                      Hủy bỏ
-                    </button>
-                  )}
+                        <svg
+                          className="w-5 h-5 inline mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 4v16m8-8H4"
+                          />
+                        </svg>
+                        Viết đánh giá
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setShowReviewForm(false);
+                          setReviewRating(0);
+                          setReviewContent("");
+                        }}
+                        className="bg-gray-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-gray-600 transition-all duration-200"
+                      >
+                        Hủy bỏ
+                      </button>
+                    )
+                  ) : null}
                 </div>
 
-                {/* Review Form */}
                 {showReviewForm && (
                   <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-blue-100 rounded-2xl border border-blue-100">
                     <h4 className="text-xl font-bold mb-6 text-gray-900">
                       Chia sẻ đánh giá của bạn
                     </h4>
-
                     <div className="mb-6">
                       <label className="block text-sm font-semibold text-gray-700 mb-3">
                         Đánh giá của bạn *
@@ -348,7 +421,7 @@ const BookDetail = () => {
                               fill="currentColor"
                               viewBox="0 0 20 20"
                             >
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3 .921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784 .57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81 .588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                             </svg>
                           </button>
                         ))}
@@ -359,7 +432,6 @@ const BookDetail = () => {
                         </span>
                       </div>
                     </div>
-
                     <div className="mb-6">
                       <label className="block text-sm font-semibold text-gray-700 mb-3">
                         Nội dung đánh giá *
@@ -372,7 +444,6 @@ const BookDetail = () => {
                         onChange={(e) => setReviewContent(e.target.value)}
                       />
                     </div>
-
                     <button
                       onClick={addComment}
                       disabled={
@@ -398,7 +469,6 @@ const BookDetail = () => {
                   </div>
                 )}
 
-                {/* Comments List */}
                 <div className="space-y-6">
                   {comments.length > 0 ? (
                     comments.map((cmt, index) => (
@@ -408,14 +478,14 @@ const BookDetail = () => {
                           index % 2 === 0 ? "bg-gray-50" : "bg-blue-50"
                         } border border-gray-100 hover:shadow-md transition-shadow duration-200`}
                       >
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4">
-                          <div className="flex items-center gap-3 mb-2 sm:mb-0">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-4">
+                          <div className="flex items-center gap-3 mb-2 sm:mb-0 flex-1">
                             <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
                               {cmt.firstname
                                 ? cmt.firstname.charAt(0).toUpperCase()
                                 : "U"}
                             </div>
-                            <div>
+                            <div className="flex-1">
                               <p className="font-semibold text-gray-900">
                                 {cmt.firstname && cmt.lastname
                                   ? `${cmt.firstname} ${cmt.lastname}`
@@ -434,18 +504,42 @@ const BookDetail = () => {
                                       fill="currentColor"
                                       viewBox="0 0 20 20"
                                     >
-                                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3 .921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784 .57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81 .588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                     </svg>
                                   ))}
                                 </div>
                               </div>
                             </div>
                           </div>
-                          <span className="text-sm text-gray-500 bg-white px-3 py-1 rounded-full">
-                            {new Date(cmt.created_date).toLocaleDateString(
-                              "vi-VN"
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-500 bg-white px-3 py-1 rounded-full">
+                              {new Date(cmt.created_date).toLocaleDateString(
+                                "vi-VN"
+                              )}
+                            </span>
+                            {/* Show delete button only for LIBRARIAN users */}
+                            {user && user.role === "UserRole.LIBRARIAN" && (
+                              <button
+                                onClick={() => handleDeleteComment(cmt)}
+                                className="ml-2 text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-all duration-200"
+                                title="Xóa bình luận"
+                              >
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                  />
+                                </svg>
+                              </button>
                             )}
-                          </span>
+                          </div>
                         </div>
                         <p className="text-gray-700 leading-relaxed pl-0 sm:pl-13">
                           {cmt.content}
@@ -482,41 +576,64 @@ const BookDetail = () => {
             </div>
           </div>
 
-          {/* Sidebar - Related Books */}
           <div className="xl:col-span-1">
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 sticky top-24">
               <h3 className="text-xl font-bold mb-6 text-gray-900">
                 Sách liên quan
               </h3>
               <div className="space-y-4">
-                {[1, 2, 3, 4].map((_, idx) => (
-                  <div
-                    key={idx}
-                    className="flex gap-4 p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200 cursor-pointer group"
-                  >
-                    <div className="w-16 h-20 bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex-shrink-0 group-hover:shadow-md transition-shadow duration-200" />
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-gray-900 text-sm mb-1 truncate group-hover:text-blue-600 transition-colors duration-200">
-                        Tiếng Việt {idx + 1}
-                      </h4>
-                      <p className="text-xs text-gray-500 mb-2 truncate">
-                        Nguyễn Văn A
-                      </p>
-                      <div className="flex items-center">
-                        <svg
-                          className="w-4 h-4 text-yellow-400 mr-1"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                        <span className="text-xs text-gray-600 font-medium">
-                          4.{6 + idx}
-                        </span>
+                {Array.isArray(relatedBooks) && relatedBooks.length > 0 ? (
+                  relatedBooks.map((relatedBook) => (
+                    <Link
+                      key={relatedBook.id}
+                      to={`/book-detail/${relatedBook.id}`}
+                      state={{
+                        book: relatedBook,
+                        relatedBooks: relatedBooks
+                          .filter(
+                            (b) =>
+                              b.id !== relatedBook.id &&
+                              (b.author_id === relatedBook.author_id ||
+                                b.category_id === relatedBook.category_id)
+                          )
+                          .slice(0, 4),
+                      }}
+                      className="flex gap-4 p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200 cursor-pointer group"
+                    >
+                      <img
+                        src={relatedBook.image}
+                        alt={relatedBook.title}
+                        className="w-16 h-20 object-cover rounded-lg flex-shrink-0 group-hover:shadow-md transition-shadow duration-200"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-gray-900 text-sm mb-1 truncate group-hover:text-blue-600 transition-colors duration-200">
+                          {relatedBook.title}
+                        </h4>
+                        <p className="text-xs text-gray-500 mb-2 truncate">
+                          {author?.name || "Unknown Author"}
+                        </p>
+                        <div className="flex items-center">
+                          <svg
+                            className="w-4 h-4 text-yellow-400 mr-1"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3 .921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784 .57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81 .588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                          <span className="text-xs text-gray-600 font-medium">
+                            {relatedBook.average_rating
+                              ? relatedBook.average_rating.toFixed(1)
+                              : "Chưa có đánh giá"}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    </Link>
+                  ))
+                ) : (
+                  <p className="text-gray-500 text-sm">
+                    Không có sách liên quan nào.
+                  </p>
+                )}
               </div>
             </div>
           </div>

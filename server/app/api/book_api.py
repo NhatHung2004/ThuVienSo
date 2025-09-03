@@ -78,6 +78,11 @@ class Book(Resource):
     def patch(self, book_id):
         """ Cập nhật thông tin sách """
         args = book_update_parser.parse_args()
+        image = args['image']
+
+        if image:
+            res = uploader.upload(image)
+            args['image'] = res['secure_url']
 
         book = dao_book.update_book(book_id, args)
 
