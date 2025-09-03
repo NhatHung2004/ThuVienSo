@@ -17,6 +17,18 @@ const BookDetail = () => {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewContent, setReviewContent] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState(null);
+
+  // check role — hỗ trợ vài dạng string phổ biến
+  const isLibrarian =
+    user?.role === "ROLE_LIBRARIAN" ||
+    user?.role === "UserRole.LIBRARIAN" ||
+    user?.role === "LIBRARIAN";
+
+  useEffect(() => {
+    console.log(user);
+  }, []);
 
   const fetchBookAndAuthor = async () => {
     try {
@@ -61,6 +73,10 @@ const BookDetail = () => {
       alert("Bạn cần đăng nhập để thêm giỏ hàng");
       return;
     }
+    if (isLibrarian) {
+      alert("Tài khoản thủ thư không thể thêm giỏ hàng");
+      return;
+    }
     try {
       await authApis().post("/carts/", {
         user_id: user.id,
@@ -77,6 +93,10 @@ const BookDetail = () => {
   const addComment = async () => {
     if (!user) {
       alert("Bạn cần đăng nhập để bình luận!");
+      return;
+    }
+    if (isLibrarian) {
+      alert("Tài khoản thủ thư không thể viết đánh giá");
       return;
     }
     if (!reviewRating || !reviewContent.trim()) {
@@ -98,6 +118,31 @@ const BookDetail = () => {
       console.error(err);
       alert("Thêm bình luận thất bại!");
     }
+  };
+
+  const handleDeleteComment = (comment) => {
+    setCommentToDelete(comment);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteComment = async () => {
+    if (!commentToDelete) return;
+
+    try {
+      await authApis().delete(`/comments/${commentToDelete.id}`);
+      alert("Xóa bình luận thành công!");
+      setShowDeleteModal(false);
+      setCommentToDelete(null);
+      fetchBookAndAuthor();
+    } catch (err) {
+      console.error(err);
+      alert("Xóa bình luận thất bại!");
+    }
+  };
+
+  const cancelDeleteComment = () => {
+    setShowDeleteModal(false);
+    setCommentToDelete(null);
   };
 
   useEffect(() => {
@@ -143,6 +188,52 @@ const BookDetail = () => {
           </h2>
         </button>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 max-w-md mx-4 shadow-2xl">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <svg
+                  className="h-6 w-6 text-red-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                Xác nhận xóa bình luận
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Bạn có chắc chắn muốn xóa bình luận này? Hành động này không thể
+                hoàn tác.
+              </p>
+              <div className="flex gap-4 justify-center">
+                <button
+                  onClick={confirmDeleteComment}
+                  className="bg-red-600 text-white px-6 py-2 rounded-xl font-semibold hover:bg-red-700 transition-colors duration-200"
+                >
+                  Xóa
+                </button>
+                <button
+                  onClick={cancelDeleteComment}
+                  className="bg-gray-300 text-gray-700 px-6 py-2 rounded-xl font-semibold hover:bg-gray-400 transition-colors duration-200"
+                >
+                  Không
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
@@ -195,30 +286,32 @@ const BookDetail = () => {
                         </span>
                       </div>
                       <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                        <button
-                          onClick={addCart}
-                          disabled={book.quantity === 0}
-                          className={`bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl ${
-                            book.quantity === 0
-                              ? "opacity-50 cursor-not-allowed"
-                              : "hover:from-blue-700 hover:to-blue-800 transform hover:scale-105"
-                          }`}
-                        >
-                          <svg
-                            className="w-5 h-5 inline mr-2"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                        {!isLibrarian && (
+                          <button
+                            onClick={addCart}
+                            disabled={book.quantity === 0}
+                            className={`bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl ${
+                              book.quantity === 0
+                                ? "opacity-50 cursor-not-allowed"
+                                : "hover:from-blue-700 hover:to-blue-800 transform hover:scale-105"
+                            }`}
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5-6m0 0h12M17 13v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6"
-                            />
-                          </svg>
-                          {book.quantity === 0 ? "Hết sách" : "Thêm vào giỏ"}
-                        </button>
+                            <svg
+                              className="w-5 h-5 inline mr-2"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5-6m0 0h12M17 13v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6"
+                              />
+                            </svg>
+                            {book.quantity === 0 ? "Hết sách" : "Thêm vào giỏ"}
+                          </button>
+                        )}
                       </div>
                     </div>
                     <div className="bg-gray-50 rounded-xl p-6">
@@ -266,38 +359,41 @@ const BookDetail = () => {
                   <h3 className="text-2xl font-bold text-gray-900 mb-4 md:mb-0">
                     Đánh giá & Nhận xét ({comments.length})
                   </h3>
-                  {!showReviewForm ? (
-                    <button
-                      onClick={() => setShowReviewForm(true)}
-                      className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-green-700 hover:to-green-800 transform hover:scale-105 transition-all duration-200 shadow-lg"
-                    >
-                      <svg
-                        className="w-5 h-5 inline mr-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+
+                  {!isLibrarian ? (
+                    !showReviewForm ? (
+                      <button
+                        onClick={() => setShowReviewForm(true)}
+                        className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-green-700 hover:to-green-800 transform hover:scale-105 transition-all duration-200 shadow-lg"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 4v16m8-8H4"
-                        />
-                      </svg>
-                      Viết đánh giá
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        setShowReviewForm(false);
-                        setReviewRating(0);
-                        setReviewContent("");
-                      }}
-                      className="bg-gray-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-gray-600 transition-all duration-200"
-                    >
-                      Hủy bỏ
-                    </button>
-                  )}
+                        <svg
+                          className="w-5 h-5 inline mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 4v16m8-8H4"
+                          />
+                        </svg>
+                        Viết đánh giá
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setShowReviewForm(false);
+                          setReviewRating(0);
+                          setReviewContent("");
+                        }}
+                        className="bg-gray-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-gray-600 transition-all duration-200"
+                      >
+                        Hủy bỏ
+                      </button>
+                    )
+                  ) : null}
                 </div>
 
                 {showReviewForm && (
@@ -382,14 +478,14 @@ const BookDetail = () => {
                           index % 2 === 0 ? "bg-gray-50" : "bg-blue-50"
                         } border border-gray-100 hover:shadow-md transition-shadow duration-200`}
                       >
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4">
-                          <div className="flex items-center gap-3 mb-2 sm:mb-0">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-4">
+                          <div className="flex items-center gap-3 mb-2 sm:mb-0 flex-1">
                             <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
                               {cmt.firstname
                                 ? cmt.firstname.charAt(0).toUpperCase()
                                 : "U"}
                             </div>
-                            <div>
+                            <div className="flex-1">
                               <p className="font-semibold text-gray-900">
                                 {cmt.firstname && cmt.lastname
                                   ? `${cmt.firstname} ${cmt.lastname}`
@@ -415,11 +511,35 @@ const BookDetail = () => {
                               </div>
                             </div>
                           </div>
-                          <span className="text-sm text-gray-500 bg-white px-3 py-1 rounded-full">
-                            {new Date(cmt.created_date).toLocaleDateString(
-                              "vi-VN"
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-500 bg-white px-3 py-1 rounded-full">
+                              {new Date(cmt.created_date).toLocaleDateString(
+                                "vi-VN"
+                              )}
+                            </span>
+                            {/* Show delete button only for LIBRARIAN users */}
+                            {user && user.role === "UserRole.LIBRARIAN" && (
+                              <button
+                                onClick={() => handleDeleteComment(cmt)}
+                                className="ml-2 text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-all duration-200"
+                                title="Xóa bình luận"
+                              >
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                  />
+                                </svg>
+                              </button>
                             )}
-                          </span>
+                          </div>
                         </div>
                         <p className="text-gray-700 leading-relaxed pl-0 sm:pl-13">
                           {cmt.content}
@@ -490,7 +610,7 @@ const BookDetail = () => {
                           {relatedBook.title}
                         </h4>
                         <p className="text-xs text-gray-500 mb-2 truncate">
-                          {relatedBook.author?.name || "Unknown Author"}
+                          {author?.name || "Unknown Author"}
                         </p>
                         <div className="flex items-center">
                           <svg

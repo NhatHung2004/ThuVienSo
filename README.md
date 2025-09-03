@@ -3,7 +3,7 @@
 Đây là ứng dụng web với kiến trúc client-server:
 - Client (Frontend): Được xây dựng bằng React, sử dụng Vite để phát triển và đóng gói ứng dụng. Giao diện người dùng được thiết kế hiện đại với Tailwind CSS và các thư viện UI như Material Tailwind và Headless UI.
 - Server (Backend): API được phát triển bằng Flask với các tính năng RESTful nhờ Flask-RestX và Flask-CORS. Server sử dụng SQLAlchemy làm ORM để quản lý cơ sở dữ liệu MySQL, tích hợp xác thực với Flask-JWT-Extended và cung cấp giao diện quản trị với Flask-Admin.
-## Các tính năng nổi bật
+## Các công nghệ sử dụng
 
 Client (Frontend):
 - Công nghệ: React, Vite, Tailwind CSS
@@ -35,7 +35,7 @@ Server (Backend):
 
   # Kích hoạt môi trường ảo
   # Trên Windows
-  venv\Scripts\activate
+  .venv\Scripts\activate
   # Trên macOS/Linux
   source venv/bin/activate
 ```
