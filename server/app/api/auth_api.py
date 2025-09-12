@@ -34,32 +34,48 @@ class Google(Resource):
         token = data.get("id_token")
 
         try:
-            # Xác minh với Google
-            idinfo = id_token.verify_oauth2_token(token, requests.Request(), "209089798443-09kgms3tt0o9cais2gd9trntcuevti8p.apps.googleusercontent.com")
+            # Xác minh Google ID Token
+            idinfo = id_token.verify_oauth2_token(
+                token,
+                requests.Request(),
+                "209089798443-09kgms3tt0o9cais2gd9trntcuevti8p.apps.googleusercontent.com"
+            )
 
-            # Lấy thông tin user
+            # Lấy thông tin user từ Google
             email = idinfo["email"]
-            firstname = idinfo['given_name']
-            lastname = idinfo['family_name']
-            password = idinfo['sub']
-            name = idinfo['name']
+            firstname = idinfo.get("given_name", "")
+            lastname = idinfo.get("family_name", "")
+            password = idinfo["sub"]  # có thể random hash thay vì sub
+            name = idinfo.get("name", email)
 
-            # Tạo JWT cho hệ thống
-            payload = {
-                "sub": email,
-                "name": name,
-                "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+            # Kiểm tra user có trong DB chưa, nếu chưa thì tạo mới
+            user = dao_user.get_by_email(email)
+            if not user:
+                user = dao_user.create_user(
+                    username=name,
+                    email=email,
+                    password=password,
+                    firstname=firstname,
+                    lastname=lastname
+                )
+
+            # Tạo JWT nội bộ bằng flask_jwt_extended
+            access_token = create_access_token(identity=str(user.id), additional_claims={"role": user.role.value})
+            refresh_token = create_refresh_token(identity=str(user.id))
+
+            return {
+                "user_id": user.id,
+                "access_token": access_token,
+                "refresh_token": refresh_token
             }
-            access_token = jwt.encode(payload, 'ad67c41c42cf3b6b45f4d9ebc8c2f69a3e1df23000bb0f93d84c0b33a94f0ee0', algorithm="HS256")
-            if isinstance(access_token, bytes):
-                access_token = access_token.decode("utf-8")
-            user = dao_user.create_user(username=name, email=email, password=password, firstname=firstname, lastname=lastname)
 
-            return {"access_token": access_token, "user_id": user.id}
-
+        except ValueError as e:
+            # Token Google không hợp lệ
+            print("Google Token Error:", e)
+            return {"error": "Invalid Google token"}, 400
         except Exception as e:
-            print(e)
-            return {"error": "Invalid token"}, 400
+            print("Unexpected Error:", e)
+            return {"error": "Server error"}, 500
 
 auth_ns.add_resource(Login, "/login")
 auth_ns.add_resource(Google, "/google")
