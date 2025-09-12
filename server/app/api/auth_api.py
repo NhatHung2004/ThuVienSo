@@ -5,7 +5,6 @@ from app.dao import dao_user
 from flask_jwt_extended import create_access_token, create_refresh_token
 from google.auth.transport import requests
 from google.oauth2 import id_token
-import jwt, datetime
 
 @auth_ns.route("/login")
 class Login(Resource):
@@ -49,7 +48,7 @@ class Google(Resource):
             name = idinfo.get("name", email)
 
             # Kiểm tra user có trong DB chưa, nếu chưa thì tạo mới
-            user = dao_user.get_by_email(email)
+            user = dao_user.get_user_by_email(email)
             if not user:
                 user = dao_user.create_user(
                     username=name,

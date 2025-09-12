@@ -34,6 +34,12 @@ def get_user_by_id(user_id):
         return user
     return None
 
+def get_user_by_email(email):
+    user = db.session.query(User).filter_by(email=email).first()
+    if user:
+        return user
+    return None
+
 def delete_user(user):
     if user:
         db.session.delete(user)
