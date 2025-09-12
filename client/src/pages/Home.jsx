@@ -38,9 +38,6 @@ const Book = ({ id, title, description, image, author, rating }) => {
           className="w-full h-72 sm:h-80 md:h-84 object-cover"
         />
         {/* Orange badge */}
-        <div className="absolute top-3 right-3 bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
-          -20%
-        </div>
       </div>
 
       <div className="p-4 sm:p-5">

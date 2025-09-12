@@ -33,6 +33,7 @@ const BookDetail = () => {
   const fetchBookAndAuthor = async () => {
     try {
       const bookRes = await Apis.get(`/books/${bookId}`);
+      console.log("Book response:", bookRes);
       setBook(bookRes.data);
 
       const [authorRes, commentRes] = await Promise.all([
@@ -42,6 +43,9 @@ const BookDetail = () => {
           throw err;
         }),
       ]);
+
+      console.log("Author response:", authorRes);
+      console.log("Comments response:", commentRes);
 
       setAuthor(authorRes.data);
 
