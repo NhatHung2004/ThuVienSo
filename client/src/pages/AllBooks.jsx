@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import Book2 from "../components/layouts/Book2";
 import { Apis } from "../configs/Apis";
 import { useSearchParams } from "react-router-dom";
@@ -14,9 +14,15 @@ const AllBooks = () => {
   const [selectedAuthor, setSelectedAuthor] = useState("");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [isSearched, setIsSearched] = useState(false);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // Hàm lấy danh sách sách liên quan
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(
+    Number(searchParams.get("page")) || 1
+  );
+  const itemsPerPage = 8; // <-- HIỆN TẠI: 4 cuốn / trang
+
+  // Hàm lấy danh sách sách liên quan (giữ nguyên)
   const getRelatedBooks = (book) => {
     return books
       .filter(
@@ -24,7 +30,7 @@ const AllBooks = () => {
           b.id !== book.id &&
           (b.author_id === book.author_id || b.category_id === book.category_id)
       )
-      .slice(0, 4); // Giới hạn lấy 4 cuốn sách liên quan
+      .slice(0, 4);
   };
 
   const fetchCategories = async () => {
@@ -32,9 +38,8 @@ const AllBooks = () => {
     try {
       const res = await Apis.get("/categories/");
       setCates(res.data);
-    } catch {
-      setLoading(false);
-      console.log("Có lỗi khi tải danh sách sách phân loại");
+    } catch (err) {
+      console.log("Có lỗi khi tải danh sách phân loại", err);
     } finally {
       setLoading(false);
     }
@@ -44,10 +49,11 @@ const AllBooks = () => {
     setLoading(true);
     try {
       const res = await Apis.get("/books/");
+
+      console.log("Fetched books:", res.data);
       setBooks(res.data);
-    } catch {
-      setLoading(false);
-      console.log("Có lỗi khi tải danh sách sách");
+    } catch (err) {
+      console.log("Có lỗi khi tải danh sách sách", err);
     } finally {
       setLoading(false);
     }
@@ -58,9 +64,8 @@ const AllBooks = () => {
     try {
       const res = await Apis.get("/authors");
       setAuthors(res.data);
-    } catch {
-      setLoading(false);
-      console.log("Có lỗi khi tải danh sách tác giả");
+    } catch (err) {
+      console.log("Có lỗi khi tải danh sách tác giả", err);
     } finally {
       setLoading(false);
     }
@@ -69,7 +74,7 @@ const AllBooks = () => {
   const filterBooks = (query, category, author) => {
     let filtered = [...books];
 
-    if (query.trim()) {
+    if (query?.trim()) {
       const trimmedQuery = query.trim().toLowerCase();
       filtered = filtered.filter(
         (book) =>
@@ -107,6 +112,8 @@ const AllBooks = () => {
     setIsSearched(
       searchQuery.trim() !== "" || category !== "" || selectedAuthor !== ""
     );
+    // reset page to 1 after filter change
+    changePage(1);
     if (window.innerWidth < 768) {
       setShowMobileFilters(false);
     }
@@ -119,6 +126,7 @@ const AllBooks = () => {
     setIsSearched(
       searchQuery.trim() !== "" || selectedCategory !== "" || author !== ""
     );
+    changePage(1);
     if (window.innerWidth < 768) {
       setShowMobileFilters(false);
     }
@@ -130,44 +138,54 @@ const AllBooks = () => {
     setSelectedAuthor("");
     setFilteredBooks([]);
     setIsSearched(false);
+    changePage(1);
+    // also remove page and q from URL
+    setSearchParams({});
   };
 
   useEffect(() => {
     fetchCategories();
     fetchBooks();
     fetchAuthor();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     const q = searchParams.get("q");
+    const pageFromUrl = Number(searchParams.get("page")) || 1;
     if (q) {
       setSearchQuery(q);
       const filtered = filterBooks(q, selectedCategory, selectedAuthor);
       setIsSearched(true);
       setFilteredBooks(filtered);
     }
-  }, [books, searchParams, selectedCategory, selectedAuthor]);
+    setCurrentPage(pageFromUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [books, searchParams]);
 
   const handleSearch = (e) => {
     e.preventDefault();
     const trimmedQuery = searchQuery.trim();
     if (
       trimmedQuery === "" &&
-      selectedCategory === "" &&
-      selectedAuthor === ""
+      (selectedCategory === "" || !selectedCategory) &&
+      (selectedAuthor === "" || !selectedAuthor)
     ) {
       resetFilters();
       return;
     }
     setIsSearched(true);
-    const filtered = filterBooks(
-      trimmedQuery,
-      selectedCategory,
-      selectedAuthor
-    );
+    const filtered = filterBooks(trimmedQuery, selectedCategory, selectedAuthor);
     setFilteredBooks(filtered);
+    // update URL search param q and reset page to 1
+    const params = {};
+    if (trimmedQuery) params.q = trimmedQuery;
+    if (currentPage && currentPage !== 1) params.page = 1;
+    setSearchParams(params);
+    changePage(1);
   };
 
+  // Display source (filtered or all)
   const displayBooks = isSearched ? filteredBooks : books;
 
   const getDisplayCount = () => {
@@ -175,6 +193,69 @@ const AllBooks = () => {
       return filteredBooks.length;
     }
     return books.length;
+  };
+
+  // ---------- Pagination logic ----------
+  const totalItems = displayBooks.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+
+  // ensure currentPage in range
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      changePage(totalPages);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalPages]);
+
+  // when filters or books change, reset to page 1 if necessary
+  useEffect(() => {
+    if (currentPage !== 1) {
+      changePage(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSearched, books]);
+
+  const changePage = (page) => {
+    const p = Math.min(Math.max(1, page), totalPages || 1);
+    setCurrentPage(p);
+    // update query param
+    const params = Object.fromEntries([...searchParams]);
+    if (p === 1) {
+      delete params.page;
+    } else {
+      params.page = p;
+    }
+    setSearchParams(params);
+    // scroll to top of list
+    window.scrollTo({ top: 200, behavior: "smooth" });
+  };
+
+  // compute books to show on current page
+  const paginatedBooks = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return displayBooks.slice(start, start + itemsPerPage);
+  }, [displayBooks, currentPage]);
+
+  // helper: generate page buttons window (show at most 7)
+  const getPageButtons = () => {
+    const maxButtons = 7;
+    if (totalPages <= maxButtons) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const pages = [];
+    const left = Math.max(1, currentPage - 2);
+    const right = Math.min(totalPages, currentPage + 2);
+
+    if (left > 1) {
+      pages.push(1);
+      if (left > 2) pages.push("...");
+    }
+    for (let i = left; i <= right; i++) pages.push(i);
+    if (right < totalPages) {
+      if (right < totalPages - 1) pages.push("...");
+      pages.push(totalPages);
+    }
+    return pages;
   };
 
   return (
@@ -250,6 +331,7 @@ const AllBooks = () => {
                         setIsSearched(
                           selectedCategory !== "" || selectedAuthor !== ""
                         );
+                        changePage(1);
                       }}
                       className="ml-2 text-blue-900 hover:text-blue-700"
                     >
@@ -272,6 +354,7 @@ const AllBooks = () => {
                         setIsSearched(
                           searchQuery.trim() !== "" || selectedAuthor !== ""
                         );
+                        changePage(1);
                       }}
                       className="ml-2 text-green-900 hover:text-green-700"
                     >
@@ -294,6 +377,7 @@ const AllBooks = () => {
                         setIsSearched(
                           searchQuery.trim() !== "" || selectedCategory !== ""
                         );
+                        changePage(1);
                       }}
                       className="ml-2 text-purple-900 hover:text-purple-700"
                     >
@@ -421,28 +505,17 @@ const AllBooks = () => {
                       </span>
                     </h3>
                   </div>
-                  <div className="mt-3 md:mt-0">
-                    <div className="flex items-center">
-                      <span className="text-gray-600 mr-2 text-sm md:text-base">
-                        Sắp xếp:
-                      </span>
-                      <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option>Mới nhất</option>
-                        <option>Được đánh giá cao</option>
-                        <option>A-Z</option>
-                        <option>Z-A</option>
-                      </select>
-                    </div>
-                  </div>
+                 
                 </div>
               </div>
+
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {displayBooks.length > 0 ? (
-                  displayBooks.map((book) => (
+                {paginatedBooks.length > 0 ? (
+                  paginatedBooks.map((book) => (
                     <Book2
                       key={book.id}
                       book={book}
-                      relatedBooks={getRelatedBooks(book)} // Truyền sách liên quan
+                      relatedBooks={getRelatedBooks(book)}
                     />
                   ))
                 ) : (
@@ -472,22 +545,40 @@ const AllBooks = () => {
                   </div>
                 )}
               </div>
-              {displayBooks.length > 0 && (
+
+              {/* Pagination */}
+              {totalItems > 0 && (
                 <div className="mt-8 flex justify-center">
-                  <nav className="inline-flex rounded-md shadow">
-                    <button className="px-3 py-2 rounded-l-md border border-r-0 border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                  <nav className="inline-flex items-center space-x-1" aria-label="Pagination">
+                    <button
+                      onClick={() => changePage(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className={`px-3 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${currentPage === 1 ? "text-gray-300 cursor-not-allowed" : "text-gray-700 hover:bg-gray-50"}`}
+                    >
                       Trước
                     </button>
-                    <button className="px-4 py-2 border border-r-0 border-gray-300 bg-blue-600 text-white text-sm font-medium">
-                      1
-                    </button>
-                    <button className="px-4 py-2 border border-r-0 border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                      2
-                    </button>
-                    <button className="px-4 py-2 border border-r-0 border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                      3
-                    </button>
-                    <button className="px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-r-md">
+
+                    {getPageButtons().map((p, idx) =>
+                      p === "..." ? (
+                        <span key={idx} className="px-4 py-2 border-t border-b border-gray-300 bg-white text-sm text-gray-500">
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={p}
+                          onClick={() => changePage(p)}
+                          className={`px-4 py-2 border border-gray-300 text-sm font-medium ${p === currentPage ? "bg-blue-600 text-white" : "bg-white text-gray-700 hover:bg-gray-50"}`}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
+
+                    <button
+                      onClick={() => changePage(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className={`px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${currentPage === totalPages ? "text-gray-300 cursor-not-allowed" : "text-gray-700 hover:bg-gray-50"}`}
+                    >
                       Sau
                     </button>
                   </nav>

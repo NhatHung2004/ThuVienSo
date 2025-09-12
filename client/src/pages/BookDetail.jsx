@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState, useContext, useMemo } from "react";
 import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import { Apis, authApis } from "../configs/Apis";
 import { MyUserContext } from "../configs/MyContext";
@@ -28,11 +28,12 @@ const BookDetail = () => {
 
   useEffect(() => {
     console.log(user);
-  }, []);
+  }, [user]);
 
   const fetchBookAndAuthor = async () => {
     try {
       const bookRes = await Apis.get(`/books/${bookId}`);
+      console.log("Book response:", bookRes);
       setBook(bookRes.data);
 
       const [authorRes, commentRes] = await Promise.all([
@@ -42,6 +43,9 @@ const BookDetail = () => {
           throw err;
         }),
       ]);
+
+      console.log("Author response:", authorRes);
+      console.log("Comments response:", commentRes);
 
       setAuthor(authorRes.data);
 
@@ -147,7 +151,18 @@ const BookDetail = () => {
 
   useEffect(() => {
     fetchBookAndAuthor();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bookId]);
+
+  // TÍNH TRUNG BÌNH ĐIỂM TỪ COMMENTS (dùng useMemo để tránh tính lại không cần thiết)
+  const averageRating = useMemo(() => {
+    if (!Array.isArray(comments) || comments.length === 0) return null;
+    const sum = comments.reduce((acc, c) => {
+      const r = Number(c.rating) || 0;
+      return acc + r;
+    }, 0);
+    return sum / comments.length;
+  }, [comments]);
 
   if (!book || !author) {
     return (
@@ -265,7 +280,7 @@ const BookDetail = () => {
                             <svg
                               key={i}
                               className={`w-6 h-6 ${
-                                i < Math.floor(book.average_rating || 0)
+                                i < Math.floor(averageRating || 0)
                                   ? "text-yellow-400"
                                   : "text-gray-300"
                               }`}
@@ -277,9 +292,7 @@ const BookDetail = () => {
                           ))}
                         </div>
                         <span className="text-lg font-semibold text-gray-700">
-                          {book.average_rating
-                            ? book.average_rating.toFixed(1)
-                            : "Chưa có đánh giá"}
+                          {averageRating ? averageRating.toFixed(1) : "Chưa có đánh giá"}
                         </span>
                         <span className="text-gray-500">
                           ({comments.length} đánh giá)
